@@ -3702,6 +3702,12 @@
         // STATE
         // ==================================================================================
 
+        // Chart.js instances, tracked so they can be destroyed before re-rendering
+        // (fixes "ReferenceError: statsChart/monthlyChart is not defined")
+        let statsChart = null;
+        let monthlyChart = null;
+        let methodChart = null;
+
         const state = {
             currentUser: null,
             students: [],
@@ -3735,6 +3741,29 @@
         // ==================================================================================
 
         function getClassById(id) { return (state.classes || []).find(c => c.id == id) || null; }
+
+        function getTermById(id) { return (state.terms || []).find(t => t.id == id) || null; }
+
+        // Students get promoted to a new class_id every year, so student.class_id only reflects
+        // TODAY's class. For a past year, the only reliable record of "who was actually in this
+        // class" is the assessments that were created for that class in that year — so for any
+        // year other than the live one, derive the roster from assessment/mark history instead
+        // of the student's current class_id.
+        function getRosterForClassAndYear(classId, yearId) {
+            const isPastYear = yearId === getPreviousAcademicYearId();
+            if (!isPastYear) {
+                return state.students.filter(s => s.class_id == classId && s.status === 'Active');
+            }
+            // Historical: find every student who has an assessment tied to this class in this year
+            const classAssessments = state.assessments.filter(a => a.class_id == classId && a.academic_year_id == yearId);
+            const assessmentIds = classAssessments.map(a => a.id);
+            const studentIds = [...new Set(
+                state.marks.filter(m => assessmentIds.includes(m.assessment_id)).map(m => m.student_id)
+            )];
+            return state.students.filter(s => studentIds.includes(s.id));
+        }
+
+        function getSessionSubjectsForClass(classId) { return (state.sessionSubjects || []).filter(s => s.session_class_id == classId); }
 
         function getSubjectById(id) { return (state.subjects || []).find(s => s.id == id) || null; }
 
@@ -3771,51 +3800,6 @@
         // 1. CLASS REGISTER HELPERS
         // ==================================================================================
 
-        function getCurrentPhase(term = state.currentTerm) {
-            if (!term?.midterm_date) return 'post_midterm';
-            return new Date() < new Date(term.midterm_date) ? 'pre_midterm' : 'post_midterm';
-        }
-
-        function calcPreMidtermPrimary(scores, maxes) {
-            if (!scores?.length) return null;
-            const avgRaw = scores.reduce((a, b) => a + b, 0) / scores.length;
-            const avgMax = maxes.reduce((a, b) => a + b, 0) / maxes.length;
-            return avgMax > 0 ? (avgRaw / avgMax) * 100 : null;
-        }
-
-        function calcPreMidtermNursery(scores) {
-            if (!scores?.length) return null;
-            return scores.reduce((a, b) => a + b, 0) / scores.length;
-        }
-
-        function calcMG(scores, maxes, mgMax) {
-            if (!scores?.length) return null;
-            const avgRaw = scores.reduce((a, b) => a + b, 0) / scores.length;
-            const avgMax = maxes.reduce((a, b) => a + b, 0) / maxes.length;
-            return avgMax > 0 ? (avgRaw / avgMax) * mgMax : null;
-        }
-
-        function calcEX(scores, maxes, exMax) {
-            return calcMG(scores, maxes, exMax);
-        }
-
-        function calcSubjectPostMidterm(sub, assessments, marks, studentId) {
-            const mgMax = sub.mg_max || 50, exMax = sub.ex_max || 50;
-            const mgA = assessments.filter(a => a.assessment_type !== 'Exam' && a.assessment_type !== 'Final Exam');
-            const exA = assessments.filter(a => a.assessment_type === 'Exam' || a.assessment_type === 'Final Exam');
-            const mgS = mgA.map(a => marks.find(m => m.assessment_id === a.id && m.student_id === studentId)?.score).filter(v => v !== undefined);
-            const exS = exA.map(a => marks.find(m => m.assessment_id === a.id && m.student_id === studentId)?.score).filter(v => v !== undefined);
-            let mg = calcMG(mgS, mgA.map(a => a.max_marks), mgMax);
-            let ex = calcEX(exS, exA.map(a => a.max_marks), exMax);
-            if (sub.appears_only_post_midterm && mg === null && ex !== null) mg = ex;
-            const tot = (mg !== null || ex !== null) ? (mg || 0) + (ex || 0) : null;
-            return { mg, ex, tot, mgMax, exMax };
-        }
-
-        // ==================================================================================
-        // 2. STATISTICS HELPERS
-        // ==================================================================================
-
         function getGradeColor(grade) {
             const colors = {
                 'A+': '#d1fae5',
@@ -3830,7 +3814,7 @@
 
         function calculateClassAverage(classId, termId) {
             const isHoliday = isHolidayMode();
-            const students = isHoliday ? getCurrentStudents().filter(s => s.class_id === classId) : state.students.filter(s => s.class_id === classId && s.status === 'Active');
+            const students = isHoliday ? getCurrentStudents().filter(s => s.class_id === classId) : getRosterForClassAndYear(classId, getCurrentYearId());
             const assessments = isHoliday ? state.sessionAssessments.filter(a => a.session_class_id === classId) : state.assessments.filter(a => a.class_id === classId && a.term_id === termId);
             const marks = isHoliday ? state.sessionMarks : state.marks;
 
@@ -3864,7 +3848,7 @@
 
         function calculateGradeDistribution(classId, termId) {
             const isHoliday = isHolidayMode();
-            const students = isHoliday ? getCurrentStudents().filter(s => s.class_id === classId) : state.students.filter(s => s.class_id === classId && s.status === 'Active');
+            const students = isHoliday ? getCurrentStudents().filter(s => s.class_id === classId) : getRosterForClassAndYear(classId, getCurrentYearId());
             const assessments = isHoliday ? state.sessionAssessments.filter(a => a.session_class_id === classId) : state.assessments.filter(a => a.class_id === classId && a.term_id === termId);
             const marks = isHoliday ? state.sessionMarks : state.marks;
             const distribution = { 'A+': 0, 'A': 0, 'B': 0, 'C': 0, 'D': 0, 'F': 0 };
@@ -3885,22 +3869,6 @@
         // ==================================================================================
         // 3. REPORT CARD HELPERS
         // ==================================================================================
-
-        function getNextClassForStudent(currentClass) {
-            const promotionMap = {
-                'NURSERY 1': 'NURSERY 2', 'NURSERY 2': 'NURSERY 3', 'NURSERY 3': 'PRIMARY 1',
-                'PRIMARY 1': 'PRIMARY 2', 'PRIMARY 2': 'PRIMARY 3', 'PRIMARY 3': 'PRIMARY 4',
-                'PRIMARY 4': 'PRIMARY 5', 'PRIMARY 5': 'PRIMARY 6', 'PRIMARY 6': 'GRADUATED'
-            };
-            return promotionMap[currentClass] || null;
-        }
-
-        function getSchoolLogoHtml(logoData, size = '56px') {
-            if (!logoData || logoData === '🏫') return `<span style="font-size:${parseInt(size) * 0.7}px">🏫</span>`;
-            if (logoData.startsWith('data:') || logoData.startsWith('http'))
-                return `<img src="${logoData}" style="width:${size};height:${size};object-fit:contain;border-radius:8px;" onerror="this.outerHTML='<span style=font-size:40px>🏫</span>'">`;
-            return `<span style="font-size:${parseInt(size) * 0.7}px">${logoData}</span>`;
-        }
 
         function buildPrintHeader(title) {
             const s = state.schoolSettings || {};
@@ -4247,16 +4215,6 @@
         // ==================================================================================
         // 8. ACADEMIC CALENDAR HELPERS
         // ==================================================================================
-
-        function getTermStatus(term) {
-            const today = new Date();
-            const start = term.start_date ? new Date(term.start_date) : null;
-            const end = term.end_date ? new Date(term.end_date) : null;
-            if (!start || !end) return 'upcoming';
-            if (today > end) return 'completed';
-            if (today >= start && today <= end) return 'current';
-            return 'upcoming';
-        }
 
         function getActiveTerm() {
             return state.terms.find(t => getTermStatus(t) === 'current') || state.currentTerm;
@@ -5106,6 +5064,17 @@
         function setCurrentPeriod(periodId) {
             if (!PERIODS[periodId]) return;
             const period = PERIODS[periodId];
+            const switchingToHoliday = periodId === 'holiday' && getCurrentPeriod().id !== 'holiday';
+
+            localStorage.setItem('elf_period', periodId);
+
+            // Per spec: switching INTO holiday mode forces a clean re-login so every part of the
+            // app (sidebar, classes, staff/teacher assignments) rebuilds from a known-clean state.
+            if (switchingToHoliday) {
+                showToast('Switching to Holiday mode — please log in again', 'info');
+                setTimeout(() => { clearSession(); window.location.reload(); }, 700);
+                return;
+            }
 
             document.querySelectorAll('.period-option').forEach(el => {
                 el.classList.remove('active');
@@ -5132,6 +5101,10 @@
 
             localStorage.setItem('elf_period', periodId);
             updateProgressBarForPeriod(periodId);
+
+            // THE FIX: rebuild the sidebar so Academics/Staff sections reflect the new period
+            // (holiday-restricted nav vs full nav). This was previously never re-run after boot.
+            if (state.currentUser?.role) buildSidebar(state.currentUser.role);
 
             showToast(`Switching to ${period.label}...`, 'info');
             loadDataForPeriod(periodId).then(() => {
@@ -5347,12 +5320,15 @@
 
             // --- LOAD COMMON DATA ---
             // Fetch all common data FIRST before using it
-            const [academicYears, terms, schoolSettings, gradingScale] = await Promise.all([
+            const [academicYears, allTerms, schoolSettings, gradingScale] = await Promise.all([
                 getAll('academic_years'),
                 getAll('terms'),
                 getSchoolSettings(),
                 getAll('grading_scale')
             ]);
+            // Terms are scoped to the selected period's academic year — a term from another
+            // year should never show up in dropdowns (Class Register, Marks Entry, etc.)
+            const terms = allTerms.filter(t => t.academic_year_id == yearId);
 
             // Now assign them to state
             state.academicYears = academicYears;
@@ -5615,8 +5591,7 @@
                     config.push({
                         section: 'Holiday Management',
                         items: [
-                            { id: 'holiday-enrollment', icon: '➕', label: 'Holiday Enrollment' },
-                            { id: 'fee-approvals', icon: '✅', label: 'Fee Approvals' }
+                            { id: 'holiday-enrollment', icon: '➕', label: 'Holiday Enrollment' }
                         ]
                     });
                 }
@@ -5660,6 +5635,7 @@
                         { id: 'financial-reports', icon: '📊', label: 'Financial Reports' },
                         { id: 'overdue-payments', icon: '⚠️', label: 'Overdue Payments' },
                         { id: 'fee-waivers', icon: '🎁', label: 'Fee Waivers' },
+                        { id: 'fee-approvals', icon: '✅', label: 'Fee Approvals' },
                         { id: 'receipts', icon: '🧾', label: 'Receipts' }
                     ]
                 });
@@ -5849,7 +5825,11 @@
             const active = students.filter(s => s.status === 'Active');
             const totalMarks = isHoliday ? state.sessionMarks.length : state.marks.length;
             const totalAssessments = isHoliday ? state.sessionAssessments.length : state.assessments.length;
-            const totalFees = state.feeAmounts.reduce((a, f) => a + f.amount, 0);
+            // "Total Fees" must reflect actually assigned & approved fees — not the fee-structure
+            // catalog (which lists every possible amount regardless of whether it was ever charged
+            // or confirmed to a student).
+            const approvedFees = state.studentFees.filter(f => f.is_approved !== false && !f.is_waived && !f.is_credit);
+            const totalFees = approvedFees.reduce((a, f) => a + f.amount, 0);
             const totalPaid = state.payments.reduce((a, p) => a + p.amount, 0);
             const collRate = totalFees > 0 ? Math.round(totalPaid / totalFees * 100) : 0;
             const sessionStudents = state.sessionEnrollments.filter(e => e.is_active !== false).length;
@@ -5902,10 +5882,10 @@
 
             const studentFees = isHoliday ? state.studentFees : state.studentFees.filter(f => f.academic_year_id === yearId);
             const payments = isHoliday ? state.payments : state.payments.filter(p => p.academic_year_id === yearId);
-            const students = isHoliday ? getCurrentStudents() : state.students.filter(s => s.status === 'Active');
+            const students = state.students.filter(s => s.status === 'Active') /* finance: never restrict to holiday-enrolled */;
 
-            const totalFees = studentFees.reduce((s, f) => s + (f.is_waived ? 0 : f.amount), 0);
-            const totalPaid = studentFees.reduce((s, f) => s + (f.is_waived ? 0 : (f.paid_amount || 0)), 0);
+            const totalFees = studentFees.reduce((s, f) => s + ((f.is_waived || f.is_approved === false) ? 0 : f.amount), 0);
+            const totalPaid = studentFees.reduce((s, f) => s + ((f.is_waived || f.is_approved === false) ? 0 : (f.paid_amount || 0)), 0);
             const pending = totalFees - totalPaid;
             const collectionRate = totalFees > 0 ? (totalPaid / totalFees) * 100 : 0;
 
@@ -5917,9 +5897,8 @@
                     const days = Math.ceil((Date.now() - new Date(oldest.due_date)) / 86400000);
                     if (days >= 7) {
                         const b = getFullStudentBalance(s.id);
-                        const cls = isHoliday ?
-                            (state.sessionClasses || []).find(c => c.id == s.class_id) :
-                            state.classes.find(c => c.id == s.class_id);
+                        // Finance always labels students by their REAL class, never the holiday class
+                        const cls = state.classes.find(c => c.id == s.class_id);
                         overdueStudents.push({ s, b, days, cls });
                     }
                 }
@@ -5930,19 +5909,12 @@
                 a.created_at)).slice(0, 5);
 
             const classData = [];
-            const classes = isHoliday ? state.sessionClasses : state.classes;
+            // Finance always groups by real classes — holiday classes are for academics only
+            const classes = state.classes;
             for (const cls of classes) {
                 let expected = 0,
                     collected = 0;
-                let classStudents;
-                if (isHoliday) {
-                    const enrollments = (state.sessionEnrollments || []).filter(e => e.session_class_id == cls.id && e
-                        .is_active !== false);
-                    const studentIds = enrollments.map(e => e.student_id);
-                    classStudents = state.students.filter(s => studentIds.includes(s.id) && s.status === 'Active');
-                } else {
-                    classStudents = state.students.filter(s => s.class_id === cls.id && s.status === 'Active');
-                }
+                const classStudents = state.students.filter(s => s.class_id === cls.id && s.status === 'Active');
                 for (const student of classStudents) {
                     const studentFeesForTerm = studentFees.filter(f =>
                         f.student_id === student.id && !f.is_waived && !f.is_credit && !f.manually_deleted
@@ -6691,7 +6663,7 @@
                     <tr class="${idx % 2 === 0 ? '' : 'alt-row'}">
                         <td style="text-align:center;color:var(--text-muted)">${idx + 1}</td>
                         <td><strong>${esc(data.student.last_name + ' ' + data.student.first_name)}</strong></td>
-                        ${data.subjectScores.map(s => `<td style="text-align:center;white-space:nowrap;background:${s.percentage !== null ? getMarkBg(s.percentage) : ''}">${s.score > 0 ? s.score : '—'}</td>`).join('')}
+                        ${data.subjectScores.map(s => `<td style="text-align:center;white-space:nowrap;background:${s.percentage !== null ? getMarkBg(s.percentage) : ''}">${s.percentage !== null ? Math.round(s.percentage) : '—'}</td>`).join('')}
                         <td style="text-align:center;white-space:nowrap;font-weight:600">${pctDisplay}</td>
                         <td style="text-align:center;white-space:nowrap"><span class="badge ${getGradeClass(data.overallPct)}">${grade}</span></td>
                         <td style="text-align:center;white-space:nowrap;font-weight:700">${rank} of ${students.length}</td>
@@ -7119,7 +7091,7 @@
                             </select>
                         </div>
                         <div class="form-group"><label>Assessment Name *</label><input type="text" id="cha-name" placeholder="e.g. Quiz 1"></div>
-                        <div class="form-group"><label>Max Marks</label><input type="number" id="cha-max" value="100" min="1" max="200"></div>
+                        <div class="form-group"><label>Max Marks</label><input type="number" id="cha-max" value="100" min="1" max="200"><small style="color:var(--text-muted)">The test can be out of any total (e.g. 20) — Class Register and Report Cards automatically scale it to /100.</small></div>
                         <div class="form-group"><label>Date</label><input type="date" id="cha-date" value="${new Date().toISOString().split('T')[0]}"></div>
                     </div>
                 </div>
@@ -7224,6 +7196,8 @@
             const students = state.students.filter(s => s.status === 'Active').sort((a, b) => a.last_name.localeCompare(b
                 .last_name));
             const holidayClasses = state.sessionClasses || [];
+            window._heAllStudents = students;
+            window._heSelected = new Set();
 
             container.innerHTML = `
                 <div class="dash-card">
@@ -7232,24 +7206,26 @@
                         <span class="badge badge-info">🏖️ Holiday Session</span>
                     </div>
                     <div class="dash-card-body">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Holiday Class *</label>
-                                <select id="he-class">
-                                    <option value="">— Select Holiday Class —</option>
-                                    ${holidayClasses.map(c => `<option value="${c.id}">${esc(c.name)}${c.is_free ? ' (FREE)' : ''}</option>`).join('')}
-                                </select>
+                        <div class="form-group">
+                            <label>Holiday Class *</label>
+                            <select id="he-class">
+                                <option value="">— Select Holiday Class —</option>
+                                ${holidayClasses.map(c => `<option value="${c.id}">${esc(c.name)}${c.is_free ? ' (FREE)' : ''}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-top:12px">
+                            <label>Search & Select Students *</label>
+                            <input type="text" id="he-search" placeholder="Type a name or student code to filter…"
+                                oninput="window.filterHeStudents(this.value)" style="width:100%;padding:8px 12px;margin-bottom:8px">
+                            <div style="display:flex;gap:10px;margin-bottom:6px">
+                                <button class="btn btn-sm btn-outline" onclick="window.heSelectAllVisible()">Select all visible</button>
+                                <button class="btn btn-sm btn-outline" onclick="window.heClearSelection()">Clear selection</button>
+                                <span id="he-selected-count" style="align-self:center;font-size:.8rem;color:var(--text-muted)">0 selected</span>
                             </div>
-                            <div class="form-group">
-                                <label>Student *</label>
-                                <select id="he-student">
-                                    <option value="">— Select Student —</option>
-                                    ${students.map(s => `<option value="${s.id}">${esc(s.first_name)} ${esc(s.last_name)} (${esc(s.student_code || '')})</option>`).join('')}
-                                </select>
-                            </div>
+                            <div id="he-student-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--border-medium);border-radius:8px;padding:6px"></div>
                         </div>
                         <div class="btn-group" style="margin-top:16px">
-                            <button class="btn btn-primary" onclick="enrollHolidayStudent()">➕ Enroll Student</button>
+                            <button class="btn btn-primary" onclick="enrollHolidayStudent()">➕ Enroll Selected Students</button>
                             <button class="btn btn-outline" onclick="removeHolidayEnrollment()">🗑️ Remove Enrollment</button>
                         </div>
                         <div id="he-result" style="margin-top:16px"></div>
@@ -7261,6 +7237,7 @@
                     </div>
                 </div>`;
 
+            window.renderHeStudentList(students);
             await loadHolidayEnrollments();
         }
 
@@ -7295,102 +7272,147 @@
             container.innerHTML = html;
         }
 
+        window.renderHeStudentList = function (students) {
+            const list = document.getElementById('he-student-list');
+            if (!list) return;
+            if (students.length === 0) {
+                list.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:16px">No students match your search</p>';
+                return;
+            }
+            list.innerHTML = students.map(s => `
+                <label style="display:grid;grid-template-columns:24px 1fr;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;text-align:left" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                    <input type="checkbox" style="justify-self:start" value="${s.id}" ${window._heSelected.has(s.id) ? 'checked' : ''} onchange="window.heToggleStudent(${s.id}, this.checked)">
+                    <span>${esc(s.first_name)} ${esc(s.last_name)} <small style="color:var(--text-muted)">(${esc(s.student_code || '')})</small></span>
+                </label>`).join('');
+        };
+        window.filterHeStudents = function (query) {
+            const q = query.trim().toLowerCase();
+            const filtered = !q ? window._heAllStudents : window._heAllStudents.filter(s =>
+                `${s.first_name} ${s.last_name} ${s.student_code || ''}`.toLowerCase().includes(q)
+            );
+            window.renderHeStudentList(filtered);
+        };
+        window.heToggleStudent = function (id, checked) {
+            if (checked) window._heSelected.add(id); else window._heSelected.delete(id);
+            const c = document.getElementById('he-selected-count');
+            if (c) c.textContent = `${window._heSelected.size} selected`;
+        };
+        window.heSelectAllVisible = function () {
+            document.querySelectorAll('#he-student-list input[type=checkbox]').forEach(cb => {
+                cb.checked = true;
+                window._heSelected.add(parseInt(cb.value));
+            });
+            const c = document.getElementById('he-selected-count');
+            if (c) c.textContent = `${window._heSelected.size} selected`;
+        };
+        window.heClearSelection = function () {
+            window._heSelected.clear();
+            document.querySelectorAll('#he-student-list input[type=checkbox]').forEach(cb => cb.checked = false);
+            const c = document.getElementById('he-selected-count');
+            if (c) c.textContent = '0 selected';
+        };
+
         async function enrollHolidayStudent() {
             const classId = document.getElementById('he-class')?.value;
-            const studentId = document.getElementById('he-student')?.value;
+            const studentIds = [...window._heSelected];
 
-            if (!classId || !studentId) { showToast('Please select both class and student', 'warning'); return; }
+            if (!classId || studentIds.length === 0) { showToast('Please select a class and at least one student', 'warning'); return; }
 
-            const existing = (state.sessionEnrollments || []).find(e =>
-                e.session_class_id == classId && e.student_id == studentId && e.is_active !== false
-            );
+            let enrolledCount = 0, feeAppliedCount = 0, skippedCount = 0;
+            for (const studentId of studentIds) {
+                const existing = (state.sessionEnrollments || []).find(e =>
+                    e.session_class_id == classId && e.student_id == studentId && e.is_active !== false
+                );
+                if (existing) { skippedCount++; continue; }
 
-            if (existing) { showToast('Student is already enrolled in this holiday class', 'warning'); return; }
-
-            const result = await insert('session_enrollments', {
-                student_id: parseInt(studentId),
-                session_class_id: parseInt(classId),
-                enrolled_at: new Date().toISOString(),
-                is_active: true
-            });
-
-            if (result) {
+                const result = await insert('session_enrollments', {
+                    student_id: parseInt(studentId),
+                    session_class_id: parseInt(classId),
+                    enrolled_at: new Date().toISOString(),
+                    is_active: true
+                });
+                if (!result) continue;
                 state.sessionEnrollments.push(result);
-                showToast('✅ Student enrolled in holiday class', 'success');
+                enrolledCount++;
 
                 const cls = getSessionClassById(classId);
                 if (!cls?.is_free) {
                     const feeResult = await autoApplyHolidayFee(studentId, getStudentById(studentId)?.class_id,
                         `Holiday enrollment in ${cls?.name}`);
-                    if (feeResult && feeResult.length > 0) {
-                        showToast(`💰 ${feeResult.length} fee(s) applied pending admin approval`, 'info');
-                    }
+                    if (feeResult && feeResult.length > 0) feeAppliedCount++;
                 }
-
-                await loadHolidayEnrollments();
-            } else {
-                showToast('Failed to enroll student', 'error');
             }
+
+            showToast(`✅ Enrolled ${enrolledCount} student(s)${feeAppliedCount ? `, ${feeAppliedCount} fee(s) applied pending admin approval` : ''}${skippedCount ? `, ${skippedCount} already enrolled` : ''}`, 'success');
+            window.heClearSelection();
+            await loadHolidayEnrollments();
         }
 
         async function removeHolidayEnrollment() {
-            const studentId = document.getElementById('he-student')?.value;
-            if (!studentId) { showToast('Please select a student', 'warning'); return; }
+            const studentIds = [...(window._heSelected || [])];
+            if (studentIds.length === 0) { showToast('Please select at least one student', 'warning'); return; }
 
-            if (!await confirmDialog('Remove this student from their holiday class?')) return;
+            if (!await confirmDialog(`Remove ${studentIds.length} student(s) from their holiday class?`)) return;
 
-            const enrollment = (state.sessionEnrollments || []).find(e =>
-                e.student_id == studentId && e.is_active !== false
-            );
+            let removedCount = 0;
+            for (const studentId of studentIds) {
+                const enrollment = (state.sessionEnrollments || []).find(e =>
+                    e.student_id == studentId && e.is_active !== false
+                );
+                if (!enrollment) continue;
+                await update('session_enrollments', enrollment.id, { is_active: false });
+                enrollment.is_active = false;
+                removedCount++;
+            }
 
-            if (!enrollment) { showToast('Student is not enrolled in any holiday class', 'warning'); return; }
-
-            await update('session_enrollments', enrollment.id, { is_active: false });
-            enrollment.is_active = false;
-
-            showToast('✅ Student removed from holiday class', 'success');
+            showToast(`✅ Removed ${removedCount} student(s) from holiday class`, 'success');
+            window.heClearSelection();
             await loadHolidayEnrollments();
         }
 
         async function autoApplyHolidayFee(studentId, classId, reason) {
             const appliedFees = [];
-            const categories = state.feeCategories.filter(c =>
-                c.is_active !== false && c.reset_frequency === 'termly'
+            // Only "Holiday Coaching" gets auto-applied on holiday enrollment — never any other
+            // fee category (Tuition, Uniform, etc. even if they're also marked "termly").
+            const category = state.feeCategories.find(c =>
+                c.is_active !== false && (c.name || '').trim().toLowerCase() === 'holiday coaching'
             );
-
-            for (const category of categories) {
-                let amount = category.amount || 0;
-                const classAmount = state.feeAmounts.find(fa =>
-                    fa.fee_category_id === category.id &&
-                    fa.class_id == classId &&
-                    fa.academic_year_id === getCurrentYearId()
-                );
-                if (classAmount) amount = classAmount.amount;
-                if (amount <= 0) continue;
-
-                const existing = state.studentFees.find(f =>
-                    f.student_id == studentId &&
-                    f.fee_category_id === category.id &&
-                    f.academic_year_id === getCurrentYearId() &&
-                    !f.is_waived &&
-                    !f.manually_deleted
-                );
-                if (existing) continue;
-
-                const fee = await insert('student_fees', {
-                    student_id: parseInt(studentId),
-                    fee_category_id: category.id,
-                    academic_year_id: getCurrentYearId(),
-                    amount: amount,
-                    paid_amount: 0,
-                    is_paid: false,
-                    is_approved: false,
-                    is_waived: false,
-                    notes: `Holiday session auto-apply: ${reason}`,
-                    created_at: new Date().toISOString()
-                });
-                appliedFees.push(fee);
+            if (!category) {
+                console.warn('[Holiday Fee] No "Holiday Coaching" fee category found — nothing applied.');
+                return appliedFees;
             }
+
+            let amount = category.amount || 20000; // fixed default per spec
+            const classAmount = state.feeAmounts.find(fa =>
+                fa.fee_category_id === category.id &&
+                fa.class_id == classId &&
+                fa.academic_year_id === getCurrentYearId()
+            );
+            if (classAmount) amount = classAmount.amount;
+            if (amount <= 0) return appliedFees;
+
+            const existing = state.studentFees.find(f =>
+                f.student_id == studentId &&
+                f.fee_category_id === category.id &&
+                f.academic_year_id === getCurrentYearId() &&
+                !f.is_waived &&
+                !f.manually_deleted
+            );
+            if (existing) return appliedFees;
+
+            const fee = await insert('student_fees', {
+                student_id: parseInt(studentId),
+                fee_category_id: category.id,
+                academic_year_id: getCurrentYearId(), // holiday coaching is always billed to the current/next year
+                amount: amount,
+                paid_amount: 0,
+                is_paid: false,
+                is_approved: false,
+                is_waived: false,
+                notes: `Holiday session auto-apply: ${reason}`,
+                created_at: new Date().toISOString()
+            });
+            if (fee) appliedFees.push(fee);
 
             return appliedFees;
         }
@@ -7414,6 +7436,7 @@
 
             const user = getCurrentUser();
             const isAdmin = user?.role === 'admin';
+            window._pendingFeeIds = pending.map(f => f.id);
 
             container.innerHTML = `
                 <div class="dash-card">
@@ -7425,14 +7448,22 @@
                     <div class="dash-card-body">
                         ${pending.length > 0 ? `
                             <div class="alert alert-warning">⚠️ ${pending.length} fee ${pending.length === 1 ? 'request' : 'requests'} awaiting your approval.</div>
+                            ${isAdmin ? `
+                            <div class="btn-group" style="margin-bottom:12px">
+                                <button class="btn btn-sm btn-success" onclick="window.bulkApproveFees('all')">✅ Accept All (${pending.length})</button>
+                                <button class="btn btn-sm btn-danger" onclick="window.bulkRejectFees('all')">❌ Reject All (${pending.length})</button>
+                                <button class="btn btn-sm btn-success" onclick="window.bulkApproveFees('selected')">✅ Accept Selected</button>
+                                <button class="btn btn-sm btn-danger" onclick="window.bulkRejectFees('selected')">❌ Reject Selected</button>
+                            </div>` : ''}
                             <div class="table-wrapper">
                                 <table class="data-table">
-                                    <thead><tr><th>Student</th><th>Category</th><th>Amount</th><th>Reason</th><th>Date</th><th>Actions</th></tr></thead>
+                                    <thead><tr>${isAdmin ? '<th style="width:30px"><input type="checkbox" onchange="window.toggleAllFeeApprovals(this.checked)"></th>' : ''}<th>Student</th><th>Category</th><th>Amount</th><th>Reason</th><th>Date</th><th>Actions</th></tr></thead>
                                     <tbody>
                                         ${pending.map(f => {
                 const st = getStudentById(f.student_id);
                 const cat = state.feeCategories.find(c => c.id === f.fee_category_id);
                 return `<tr>
+                                                ${isAdmin ? `<td><input type="checkbox" class="fee-approval-cb" value="${f.id}"></td>` : ''}
                                                 <td><strong>${st ? esc(st.first_name + ' ' + st.last_name) : '—'}</strong><br><small>${esc(st?.student_code || '')}</small></td>
                                                 <td>${esc(cat?.name || '—')}</td>
                                                 <td>${fmtCurrency(f.amount)}</td>
@@ -7500,6 +7531,51 @@
             showToast('✅ Fee rejected', 'success');
             renderFeeApprovals(document.getElementById('dynamic-content'));
         }
+
+        window.toggleAllFeeApprovals = function (checked) {
+            document.querySelectorAll('.fee-approval-cb').forEach(cb => cb.checked = checked);
+        };
+
+        window.bulkApproveFees = async function (scope) {
+            const ids = scope === 'all'
+                ? (window._pendingFeeIds || [])
+                : [...document.querySelectorAll('.fee-approval-cb:checked')].map(cb => parseInt(cb.value));
+            if (ids.length === 0) { showToast('No fees selected', 'warning'); return; }
+            if (!await confirmDialog(`Approve ${ids.length} fee request(s)?`)) return;
+
+            const adminId = getCurrentUser()?.id;
+            for (const id of ids) {
+                await update('student_fees', id, {
+                    is_approved: true,
+                    approved_at: new Date().toISOString(),
+                    approved_by: adminId
+                });
+            }
+            await refreshTable('student_fees');
+            showToast(`✅ ${ids.length} fee(s) approved`, 'success');
+            renderFeeApprovals(document.getElementById('dynamic-content'));
+        };
+
+        window.bulkRejectFees = async function (scope) {
+            const ids = scope === 'all'
+                ? (window._pendingFeeIds || [])
+                : [...document.querySelectorAll('.fee-approval-cb:checked')].map(cb => parseInt(cb.value));
+            if (ids.length === 0) { showToast('No fees selected', 'warning'); return; }
+            const reason = prompt(`Reason for rejecting ${ids.length} fee(s):`);
+            if (reason === null) return;
+            if (!reason.trim()) { showToast('Please provide a reason for rejection', 'warning'); return; }
+
+            for (const id of ids) {
+                await update('student_fees', id, {
+                    is_waived: true,
+                    waiver_reason: `Rejected (bulk): ${reason}`,
+                    manually_deleted: true
+                });
+            }
+            await refreshTable('student_fees');
+            showToast(`✅ ${ids.length} fee(s) rejected`, 'success');
+            renderFeeApprovals(document.getElementById('dynamic-content'));
+        };
 
         // ==================================================================================
         // REGULAR MARKS ENTRY (Academic Year)
@@ -7853,18 +7929,6 @@
             }, 200);
         }
 
-        async function lockAssessment(id) {
-            if (!await confirmDialog('Lock this assessment? No further edits will be possible.')) return;
-            await update('assessments', id, { is_locked: true });
-            await refreshTable('assessments');
-            closeModal();
-            showToast('🔒 Assessment locked', 'info');
-        }
-
-        // ==================================================================================
-        // REGULAR MARKS DATABASE
-        // ==================================================================================
-
         async function renderMarksDatabase(container) {
             await ensureStateLoaded();
             const user = getCurrentUser();
@@ -7974,7 +8038,7 @@
                 const studentIds = enrollments.map(e => e.student_id);
                 students = state.students.filter(s => studentIds.includes(s.id) && s.status === 'Active');
             } else {
-                students = state.students.filter(s => s.class_id == classId && s.status === 'Active');
+                students = getRosterForClassAndYear(classId, getCurrentYearId());
             }
             students.sort((a, b) => a.last_name.localeCompare(b.last_name));
 
@@ -8138,7 +8202,7 @@
                 const studentIds = enrollments.map(e => e.student_id);
                 students = state.students.filter(s => studentIds.includes(s.id) && s.status === 'Active');
             } else {
-                students = state.students.filter(s => s.class_id === classId && s.status === 'Active');
+                students = getRosterForClassAndYear(classId, getCurrentYearId());
             }
             students.sort((a, b) => a.last_name.localeCompare(b.last_name));
 
@@ -8210,25 +8274,6 @@
             const annDisplayName = isNursery ? (cls?.name || '').replace(/nursery/i, 'MATERNELLE').replace(/primary/i, 'PRIMAIRE') : (cls?.name || '');
             container.innerHTML = `<div style="padding:8px 16px;background:#f0fdf4;border-radius:8px;margin-bottom:8px;font-size:.8rem;font-weight:600;color:#065f46">📊 ${isNursery ? 'VUE ANNUELLE' : 'ANNUAL VIEW'} — ${esc(annDisplayName)} — ${isNursery ? 'Les' : 'All'} ${terms.length} ${isNursery ? 'Trimestres Combinés' : 'Terms Combined'}</div><div style="overflow-x:auto"><table class="data-table" style="min-width:700px;font-size:.77rem;border-collapse:collapse"><thead><tr style="background:var(--bg-tertiary)"><th rowspan="2">#</th><th rowspan="2" style="min-width:140px">${isNursery ? 'ÉLÈVE' : 'STUDENT'}</th>${subjects.map(sub => `<th colspan="3" style="text-align:center;border:1px solid var(--border-medium)">${esc(sub.name.toUpperCase())}</th>`).join('')}<th rowspan="2" style="text-align:center">TOT_MG</th><th rowspan="2" style="text-align:center">TOT_EX</th><th rowspan="2" style="text-align:center">G_TOT</th><th rowspan="2" style="text-align:center">%</th><th rowspan="2" style="text-align:center">${isNursery ? 'COTE' : 'GRADE'}</th><th rowspan="2" style="text-align:center">${isNursery ? 'RANG' : 'RANK'}</th></tr><tr style="background:var(--bg-secondary)">${subjects.map(() => `<th style="text-align:center;font-size:.7rem">Tot-MG</th><th style="text-align:center;font-size:.7rem">Tot-EX</th><th style="text-align:center;font-size:.7rem">G-TOT</th>`).join('')}</tr></thead><tbody>${rows.map((row, i) => `<tr class="${i % 2 === 0 ? '' : 'alt-row'}"><td style="text-align:center;color:var(--text-muted)">${i + 1}</td><td><strong>${esc(row.st.last_name + ' ' + row.st.first_name)}</strong>${row.subCells.join('')}<td style="text-align:center;font-weight:600">${fmt(row.annualMG, 1)}</td><td style="text-align:center;font-weight:600">${fmt(row.annualEX, 1)}</td><td style="text-align:center;font-weight:700;background:${getMarkBg(row.pct || 0)}">${fmt(row.annualTOT, 1)}</td><td style="text-align:center;font-weight:600">${row.pct !== null ? fmtPct(row.pct) : '—'}</td><td style="text-align:center"><span class="badge ${getGradeClass(row.pct)}">${getGrade(row.pct)}</span></td><td style="text-align:center;font-weight:700">${rankMap.get(row.st.id) || '—'}</td></tr>`).join('') || `<tr><td colspan="100" style="text-align:center;padding:var(--lg);color:var(--text-muted)">No students</td></tr>`}</tbody><tfoot><tr style="background:var(--bg-tertiary);font-weight:600"><td colspan="2" style="text-align:right;padding:8px">${isNursery ? 'MOYENNE' : 'AVERAGE'}</td>${annAvgRow.join('')}<td style="background:#e8f4ff"></td><td style="background:#e8f4ff"></td><td style="background:#d1fae5"></td><td></td><td></td><td></td></tr></tfoot></table></div><div style="padding:12px 16px;background:var(--bg-secondary);border-top:1px solid var(--border-light);border-radius:0 0 8px 8px;display:flex;gap:24px;flex-wrap:wrap;font-size:.82rem">${(() => { const pcts = rows.filter(r => r.pct !== null).map(r => r.pct); const classAvg = pcts.length ? pcts.reduce((a, b) => a + b, 0) / pcts.length : 0; const passRate = pcts.length ? (pcts.filter(p => p >= 50).length / pcts.length * 100).toFixed(0) : 0; const top = rows.filter(r => r.pct !== null).sort((a, b) => b.pct - a.pct)[0]; return `<span>📊 Class Avg: <strong>${classAvg.toFixed(1)}%</strong></span><span>✅ Pass Rate: <strong>${passRate}%</strong></span><span>🏆 Top: <strong>${top ? esc(top.st.last_name + ' ' + top.st.first_name) + ' (' + fmtPct(top.pct) + ')' : '—'}</strong></span><span>👥 Students: <strong>${rows.length}</strong></span>`; })()}</div>`;
         }
-
-        function exportCRToExcel() {
-            const table = document.querySelector('#cr-table-container table');
-            if (!table) { showToast('No data to export', 'warning'); return; }
-            const ws = XLSX.utils.table_to_sheet(table);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Class Register');
-            XLSX.writeFile(wb, `Class_Register_${new Date().toISOString().split('T')[0]}.xlsx`);
-            showToast('✅ Register exported', 'success');
-        }
-
-        // ==================================================================================
-        // STATISTICS MODULE - 100% COMPLETE
-        // ==================================================================================
-
-        let statsChart = null;
-        let gradeChart = null;
-        let subjectChart = null;
-        let annualChart = null;
 
         async function renderStatistics(container) {
             await ensureStateLoaded();
@@ -9400,461 +9445,6 @@
         </div>`;
         }
 
-        function onReportTypeChange() {
-            const reportType = document.getElementById('report-type').value;
-            const termSelect = document.getElementById('report-term');
-            if (reportType === 'annual') {
-                termSelect.value = 'annual';
-                termSelect.disabled = true;
-            } else {
-                termSelect.disabled = false;
-                if (termSelect.value === 'annual') {
-                    const currentTerm = state.currentTerm;
-                    termSelect.value = currentTerm?.id || '';
-                }
-            }
-            if (document.getElementById('report-class').value && document.getElementById('report-student').value) {
-                generateReportCard();
-            }
-        }
-
-        function onReportTermChange() {
-            if (document.getElementById('report-class').value && document.getElementById('report-student').value) {
-                generateReportCard();
-            }
-        }
-
-        async function loadReportStudents() {
-            const classId = document.getElementById('report-class')?.value;
-            if (!classId) {
-                document.getElementById('report-student').innerHTML = '<option value="">— Select class first —</option>';
-                return;
-            }
-
-            const isHoliday = isHolidayMode();
-            let students;
-            if (isHoliday) {
-                const enrollments = (state.sessionEnrollments || []).filter(e => e.session_class_id == classId && e.is_active !== false);
-                const studentIds = enrollments.map(e => e.student_id);
-                students = state.students.filter(s => studentIds.includes(s.id) && s.status === 'Active');
-            } else {
-                students = state.students.filter(s => s.class_id == classId && s.status === 'Active');
-            }
-            students.sort((a, b) => a.last_name.localeCompare(b.last_name));
-
-            const studentSelect = document.getElementById('report-student');
-            if (students.length === 0) {
-                studentSelect.innerHTML = '<option value="">— No students found —</option>';
-                return;
-            }
-            studentSelect.innerHTML = '<option value="">— Select student —</option>' +
-                students.map(s => `<option value="${s.id}">${esc(s.first_name)} ${esc(s.last_name)} (${esc(s.student_code || 'N/A')})</option>`).join('');
-        }
-
-        async function generateReportCard() {
-            const studentId = document.getElementById('report-student')?.value;
-            const classId = document.getElementById('report-class')?.value;
-            const termValue = document.getElementById('report-term')?.value;
-            const reportType = document.getElementById('report-type')?.value;
-
-            if (!studentId || !classId) {
-                showToast('Please select class and student', 'warning');
-                return;
-            }
-
-            const isAnnual = termValue === 'annual' || reportType === 'annual';
-            const isPreMidterm = reportType === 'midterm' && !isAnnual;
-            const isHoliday = isHolidayMode();
-
-            _currentReportStudent = parseInt(studentId);
-            _currentReportClass = parseInt(classId);
-            _currentReportTerm = termValue;
-            _currentReportType = reportType;
-
-            const student = state.students.find(s => s.id == studentId);
-            const cls = isHoliday ?
-                (state.sessionClasses || []).find(c => c.id == classId) :
-                state.classes.find(c => c.id == classId);
-
-            const isNursery = (cls?.level || '').toLowerCase() === 'nursery';
-
-            // Determine which terms to process
-            let termsToProcess = [];
-            if (isAnnual) {
-                termsToProcess = state.terms.filter(t => t.academic_year_id === (state.currentAcadYear?.id || 1));
-            } else {
-                const term = state.terms.find(t => t.id == termValue);
-                if (term) termsToProcess = [term];
-            }
-
-            // Get subjects for this level
-            let subjects = isHoliday ?
-                (state.sessionSubjects || []).filter(s => s.session_class_id == classId) :
-                state.subjects.filter(s => s.level === cls?.level && s.is_active !== false);
-
-            if (isPreMidterm) subjects = subjects.filter(s => !s.appears_only_post_midterm);
-            subjects.sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
-
-            // Get assessments and marks
-            let allAssessments = [];
-            let allMarks = [];
-            if (isHoliday) {
-                allAssessments = state.sessionAssessments || [];
-                allMarks = state.sessionMarks || [];
-            } else {
-                for (const term of termsToProcess) {
-                    const assessments = state.assessments.filter(a => a.class_id == classId && a.term_id === term.id);
-                    allAssessments.push(...assessments);
-                }
-                allMarks = state.marks.filter(m => m.student_id == studentId);
-            }
-
-            // Calculate scores per term and per subject
-            const termScores = {};
-            for (const term of termsToProcess) {
-                termScores[term.id] = { subjects: {}, totals: { mg: 0, ex: 0, total: 0, max: 0 } };
-
-                for (const subject of subjects) {
-                    const termAssessments = allAssessments.filter(a => a.term_id === term.id && a.subject_id === subject.id);
-                    const mgAssessments = termAssessments.filter(a => !['Exam', 'Final Exam'].includes(a.assessment_type));
-                    const exAssessments = termAssessments.filter(a => ['Exam', 'Final Exam'].includes(a.assessment_type));
-
-                    let mgScore = null, exScore = null;
-                    const mgMax = subject.mg_max || 50;
-                    const exMax = subject.ex_max || 50;
-
-                    // Calculate MG based on ACTUAL assessments completed
-                    if (mgAssessments.length > 0) {
-                        let totalRaw = 0, totalMaxRaw = 0, completedCount = 0;
-                        for (const ass of mgAssessments) {
-                            const mark = allMarks.find(m => m.assessment_id === ass.id);
-                            if (mark && mark.score !== null && mark.score !== undefined) {
-                                totalRaw += mark.score;
-                                totalMaxRaw += ass.max_marks;
-                                completedCount++;
-                            }
-                        }
-                        if (completedCount > 0) {
-                            const avgRaw = totalRaw / completedCount;
-                            const avgMax = totalMaxRaw / completedCount;
-                            if (isPreMidterm) {
-                                mgScore = isNursery ? avgRaw : (avgMax > 0 ? (avgRaw / avgMax) * 100 : 0);
-                            } else {
-                                mgScore = avgMax > 0 ? (avgRaw / avgMax) * mgMax : 0;
-                            }
-                        }
-                    }
-
-                    // Calculate EX based on ACTUAL assessments completed
-                    if (!isPreMidterm && exAssessments.length > 0) {
-                        let totalRaw = 0, totalMaxRaw = 0, completedCount = 0;
-                        for (const ass of exAssessments) {
-                            const mark = allMarks.find(m => m.assessment_id === ass.id);
-                            if (mark && mark.score !== null && mark.score !== undefined) {
-                                totalRaw += mark.score;
-                                totalMaxRaw += ass.max_marks;
-                                completedCount++;
-                            }
-                        }
-                        if (completedCount > 0) {
-                            const avgRaw = totalRaw / completedCount;
-                            const avgMax = totalMaxRaw / completedCount;
-                            exScore = avgMax > 0 ? (avgRaw / avgMax) * exMax : 0;
-                        }
-                    }
-
-                    // POST-MIDTERM ONLY SUBJECTS: MG = EX (auto-copy)
-                    if (!isPreMidterm && subject.appears_only_post_midterm && mgScore === null && exScore !== null) {
-                        mgScore = exScore;
-                    }
-
-                    // Calculate total using the maximum possible marks for this subject
-                    let total = null;
-                    let maxTotal = 0;
-                    if (isPreMidterm) {
-                        total = mgScore;
-                        maxTotal = isNursery ? mgMax : 100;
-                    } else {
-                        if (mgScore !== null || exScore !== null) {
-                            total = (mgScore || 0) + (exScore || 0);
-                        }
-                        maxTotal = mgMax + exMax;
-                    }
-
-                    const percentage = (total !== null && maxTotal > 0) ? (total / maxTotal) * 100 : null;
-
-                    termScores[term.id].subjects[subject.id] = {
-                        mg: mgScore,
-                        ex: exScore,
-                        total: total,
-                        max: maxTotal,
-                        percentage: percentage,
-                        mgMax: mgMax,
-                        exMax: exMax
-                    };
-
-                    termScores[term.id].totals.mg += mgScore || 0;
-                    termScores[term.id].totals.ex += exScore || 0;
-                    termScores[term.id].totals.total += total || 0;
-                    termScores[term.id].totals.max += maxTotal;
-                }
-            }
-
-            // Calculate overall scores
-            let annualTotalMG = 0, annualTotalEX = 0, annualTotalScore = 0, annualTotalMax = 0;
-            for (const term of termsToProcess) {
-                annualTotalMG += termScores[term.id].totals.mg;
-                annualTotalEX += termScores[term.id].totals.ex;
-                annualTotalScore += termScores[term.id].totals.total;
-                annualTotalMax += termScores[term.id].totals.max;
-            }
-
-            const overallPercentage = annualTotalMax > 0 ? (annualTotalScore / annualTotalMax) * 100 : 0;
-            const overallGrade = getGrade(overallPercentage);
-
-            // Calculate rank using the dedicated function
-            const rank = await calculateStudentRankFull(parseInt(studentId), parseInt(classId), termsToProcess, allAssessments, allMarks);
-
-            // School info with logo
-            const schoolName = state.schoolSettings.school_name || 'ECOLE LA FONTAINE';
-            const schoolLocation = state.schoolSettings.school_location || 'Rubavu, Rwanda';
-            const headTeacherName = state.schoolSettings.report_footer_line2 || 'UWAYO GANZA Eugene';
-            const schoolLogo = state.schoolSettings.school_logo || '🏫';
-
-            // Get logo HTML
-            const logoHtml = getSchoolLogoHtml(schoolLogo);
-
-            // Report titles based on type and language
-            let reportTitle = '';
-            if (isPreMidterm) {
-                reportTitle = isNursery ? 'RÉSULTATS DES TESTS DEMI-TRIMESTRE' : 'MID-TERM EXAMINATION RESULTS';
-            } else if (isAnnual) {
-                reportTitle = isNursery ? 'RAPPORT ANNUEL' : 'ANNUAL REPORT CARD';
-            } else {
-                reportTitle = isNursery ? 'RÉSULTATS DE FIN DE TRIMESTRE' : 'END OF TERM EXAMINATIONS RESULTS';
-            }
-
-            const termLabel = isAnnual ?
-                (isNursery ? 'ANNÉE SCOLAIRE' : 'ACADEMIC YEAR') + ' ' + (state.schoolSettings.current_year || '2025-2026') :
-                (termsToProcess[0]?.name || '') + ' - ' + (state.schoolSettings.current_year || '2025-2026');
-
-            // Get the GRADE (academic level without section letter)
-            let gradeName = isNursery ?
-                (cls.name.replace(/NURSERY/i, 'MATERNELLE').replace(/PRIMARY/i, 'PRIMAIRE')) :
-                cls.name;
-            gradeName = gradeName.replace(/\s+[A-Za-z]$/, '').trim();
-
-            // Get the CLASS (full class name including section letter if exists)
-            let className = isNursery ?
-                (cls.name.replace(/NURSERY/i, 'MATERNELLE').replace(/PRIMARY/i, 'PRIMAIRE')) :
-                cls.name;
-
-            const lblGrade = isNursery ? 'GRADE' : 'GRADE';
-            const lblStudent = isNursery ? 'NOM DE L\'ÉLÈVE' : 'STUDENT NAME';
-            const lblCode = isNursery ? 'CODE' : 'STUDENT CODE';
-            const lblClass = isNursery ? 'CLASSE' : 'CLASS';
-
-            // Build report HTML
-            let reportHtml = `
-        <div class="report-card" id="report-card">
-            <div class="report-header">
-                <div class="report-logo">${logoHtml}</div>
-                <div class="report-header-text">
-                    <h2>${esc(schoolName)}</h2>
-                    <p>${esc(schoolLocation)}</p>
-                    <h3>${reportTitle}</h3>
-                    <p>${termLabel}</p>
-                </div>
-            </div>
-            <div class="report-info">
-                <div class="report-info-item"><strong>${lblGrade}</strong><span>${esc(gradeName)}</span></div>
-                <div class="report-info-item"><strong>${lblStudent}</strong><span>${esc(student.first_name + ' ' + student.last_name)}</span></div>
-                <div class="report-info-item"><strong>${lblCode}</strong><span>${esc(student.student_code || '—')}</span></div>
-                <div class="report-info-item"><strong>${lblClass}</strong><span>${esc(className)}</span></div>
-            </div>`;
-
-            // Generate subject table based on report type
-            if (isPreMidterm && isNursery) {
-                // NURSERY PRE-MIDTERM (French)
-                reportHtml += `<table class="report-subjects">
-            <thead><tr><th>MATIÈRES</th><th>MAX</th><th>NOTE</th><th>COTE</th></tr></thead>
-            <tbody>`;
-                for (const subject of subjects) {
-                    const score = termScores[termsToProcess[0]?.id]?.subjects[subject.id];
-                    const pct = score?.percentage;
-                    reportHtml += `<tr>
-                <td style="font-weight:600">${subject.name.toUpperCase()}</td>
-                <td style="text-align:center">${score?.max || subject.mg_max}</td>
-                <td style="text-align:center;font-weight:700">${score?.total !== null ? score.total.toFixed(1) : '—'}</td>
-                <td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td>
-            </tr>`;
-                }
-                reportHtml += `</tbody></table>`;
-
-            } else if (isPreMidterm && !isNursery) {
-                // PRIMARY PRE-MIDTERM (English)
-                reportHtml += `<table class="report-subjects">
-            <thead><tr><th>SUBJECTS</th><th>MAX</th><th>SCORE</th><th>%</th><th>GRADE</th></tr></thead>
-            <tbody>`;
-                for (const subject of subjects) {
-                    const score = termScores[termsToProcess[0]?.id]?.subjects[subject.id];
-                    const pct = score?.percentage;
-                    reportHtml += `<tr>
-                <td style="font-weight:600">${subject.name}</td>
-                <td style="text-align:center">${score?.max || 100}</td>
-                <td style="text-align:center;font-weight:700">${score?.total !== null ? score.total.toFixed(1) : '—'}</td>
-                <td style="text-align:center">${pct !== null ? pct.toFixed(1) + '%' : '—'}</td>
-                <td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td>
-            </tr>`;
-                }
-                reportHtml += `</tbody></table>`;
-
-            } else if (isAnnual) {
-                // ANNUAL REPORT (Nursery French or Primary English)
-                const subjectHdr = isNursery ? 'MATIÈRES' : 'SUBJECT';
-                reportHtml += `<table class="report-subjects">
-            <thead><tr>
-                <th>${subjectHdr}</th>
-                <th>T-MG</th><th>T-EX</th><th>TOTAL</th>
-                <th>MAX</th><th>%</th>
-                <th>${isNursery ? 'COTE' : 'GRADE'}</th>
-            </tr></thead>
-            <tbody>`;
-                for (const subject of subjects) {
-                    let tMG = 0, tEX = 0, tMAX = 0;
-                    for (const term of termsToProcess) {
-                        const score = termScores[term.id]?.subjects[subject.id];
-                        tMG += score?.mg || 0;
-                        tEX += score?.ex || 0;
-                        tMAX += score?.max || 0;
-                    }
-                    const pct = tMAX > 0 ? (tMG + tEX) / tMAX * 100 : 0;
-                    const displayName = isNursery ? subject.name.toUpperCase() : subject.name;
-                    reportHtml += `<tr>
-                <td style="font-weight:600">${displayName}</td>
-                <td style="text-align:center">${tMG.toFixed(1)}</td>
-                <td style="text-align:center">${tEX.toFixed(1)}</td>
-                <td style="text-align:center;font-weight:700">${(tMG + tEX).toFixed(1)}</td>
-                <td style="text-align:center">${tMAX}</td>
-                <td style="text-align:center">${pct.toFixed(1)}%</td>
-                <td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${getGrade(pct)}</span></td>
-            </tr>`;
-                }
-                reportHtml += `</tbody></table>`;
-
-            } else if (isNursery && !isPreMidterm) {
-                // NURSERY POST-MIDTERM (French)
-                reportHtml += `<table class="report-subjects">
-            <thead><tr><th>MATIÈRES</th><th>MG</th><th>EX</th><th>TOTAL</th><th>MAX</th><th>COTE</th></tr></thead>
-            <tbody>`;
-                for (const subject of subjects) {
-                    const score = termScores[termsToProcess[0]?.id]?.subjects[subject.id];
-                    const pct = score?.percentage;
-                    const isCopied = subject.appears_only_post_midterm && score?.mg === score?.ex && score?.mg !== null;
-                    reportHtml += `<tr>
-                <td style="font-weight:600">${subject.name.toUpperCase()}</td>
-                <td style="text-align:center">${score?.mg !== null ? score.mg.toFixed(1) : '—'}${isCopied ? '<sup title="Copied from EX" style="font-size:.6rem">★</sup>' : ''}</td>
-                <td style="text-align:center">${score?.ex !== null ? score.ex.toFixed(1) : '—'}</td>
-                <td style="text-align:center;font-weight:700">${score?.total !== null ? score.total.toFixed(1) : '—'}</td>
-                <td style="text-align:center">${score?.max || 0}</td>
-                <td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td>
-            </tr>`;
-                }
-                reportHtml += `</tbody></table>`;
-
-            } else {
-                // PRIMARY POST-MIDTERM (English)
-                reportHtml += `<table class="report-subjects">
-            <thead><tr><th>SUBJECTS</th><th>MG</th><th>EX</th><th>TOTAL</th><th>MAX</th><th>%</th><th>GRADE</th></tr></thead>
-            <tbody>`;
-                for (const subject of subjects) {
-                    const score = termScores[termsToProcess[0]?.id]?.subjects[subject.id];
-                    const pct = score?.percentage;
-                    const isCopied = subject.appears_only_post_midterm && score?.mg === score?.ex && score?.mg !== null;
-                    reportHtml += `<tr>
-                <td style="font-weight:600">${subject.name}</td>
-                <td style="text-align:center">${score?.mg !== null ? score.mg.toFixed(1) : '—'}${isCopied ? '<sup title="Copied from EX" style="font-size:.6rem">★</sup>' : ''}</td>
-                <td style="text-align:center">${score?.ex !== null ? score.ex.toFixed(1) : '—'}</td>
-                <td style="text-align:center;font-weight:700">${score?.total !== null ? score.total.toFixed(1) : '—'}</td>
-                <td style="text-align:center">${score?.max || 0}</td>
-                <td style="text-align:center">${pct !== null ? pct.toFixed(1) + '%' : '—'}</td>
-                <td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td>
-            </tr>`;
-                }
-                reportHtml += `</tbody></table>`;
-            }
-
-            // Summary section with RANK included
-            let summaryHtml = '';
-            if (isAnnual) {
-                const annualMGMax = subjects.reduce((sum, s) => sum + (s.mg_max || 50), 0) * termsToProcess.length;
-                const annualEXMax = subjects.reduce((sum, s) => sum + (s.ex_max || 50), 0) * termsToProcess.length;
-                summaryHtml = `<div class="report-summary">
-            <div><div class="summary-label">${isNursery ? 'TOTAL MG' : 'ANNUAL TOT MG'}</div><div class="summary-value">${annualTotalMG.toFixed(1)} / ${annualMGMax}</div></div>
-            <div><div class="summary-label">${isNursery ? 'TOTAL EX' : 'ANNUAL TOT EX'}</div><div class="summary-value">${annualTotalEX.toFixed(1)} / ${annualEXMax}</div></div>
-            <div><div class="summary-label">G_TOT</div><div class="summary-value">${annualTotalScore.toFixed(1)} / ${annualMGMax + annualEXMax}</div></div>
-            <div><div class="summary-label">${isNursery ? 'MOYENNE' : 'AVERAGE %'}</div><div class="summary-value">${overallPercentage.toFixed(1)}%</div></div>
-            <div><div class="summary-label">${isNursery ? 'COTE' : 'GRADE'}</div><div class="summary-value">${overallGrade}</div></div>
-            <div><div class="summary-label">${isNursery ? 'RANG' : 'RANK'}</div><div class="summary-value">${rank}</div></div>
-        </div>`;
-            } else {
-                const termTotal = termScores[termsToProcess[0]?.id]?.totals;
-                summaryHtml = `<div class="report-summary">
-            <div><div class="summary-label">${isNursery ? 'TOTAL DES POINTS' : 'TOTAL SCORE'}</div><div class="summary-value">${(termTotal?.total || 0).toFixed(1)} / ${termTotal?.max || 0}</div></div>
-            <div><div class="summary-label">${isNursery ? 'MOYENNE' : 'AVERAGE %'}</div><div class="summary-value">${overallPercentage.toFixed(1)}%</div></div>
-            <div><div class="summary-label">${isNursery ? 'COTE' : 'GRADE'}</div><div class="summary-value">${overallGrade}</div></div>
-            <div><div class="summary-label">${isNursery ? 'RANG' : 'RANK'}</div><div class="summary-value">${rank}</div></div>
-        </div>`;
-            }
-
-            reportHtml += summaryHtml;
-
-            // Promotion notice for annual report
-            if (isAnnual) {
-                const nextClass = getNextClassForStudent(cls.name.replace(/\s+[A-Za-z]$/, '').trim());
-                const promotionMessage = isNursery ?
-                    (overallPercentage >= 50 ?
-                        `🎉 FÉLICITATIONS! L'élève a obtenu une moyenne supérieure à 50% et est PROMU(E) en ${nextClass || 'la classe suivante'} pour l'année académique ${(state.currentAcadYear?.year_name || '2026-2027')}.` :
-                        `⚠️ ATTENTION: L'élève a obtenu une moyenne inférieure à 50% et devra REPRENDRE la même classe.`)
-                    :
-                    (overallPercentage >= 50 ?
-                        `🎉 CONGRATULATIONS! The student has achieved above 50% average and is PROMOTED to ${nextClass || 'the next class'} for the academic year ${(state.currentAcadYear?.year_name || '2026-2027')}.` :
-                        `⚠️ ATTENTION: The student scored below 50% and will REPEAT the current class.`);
-                reportHtml += `<div class="report-footer" style="background:#f0fdf4;color:#065f46;font-weight:bold;margin-bottom:20px;">${promotionMessage}</div>`;
-            }
-
-            // Footer with signatures
-            const footerLine1 = isNursery ?
-                `Fait à ${schoolName}, Le ${formatDate(new Date())}` :
-                `Done at ${schoolName}, ON ${formatDate(new Date())}`;
-            const footerLine2 = headTeacherName;
-            const footerLine3 = isNursery ? 'LE DIRECTEUR DE L\'ÉCOLE' : 'THE SCHOOL HEADTEACHER';
-
-            reportHtml += `<div class="report-footer" style="margin-top:20px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:30px;flex-wrap:wrap;gap:20px">
-            <div style="text-align:center;width:200px;">
-                <div style="margin-bottom:8px;font-size:11px;font-weight:600;">${isNursery ? 'SIGNATURE DU PARENT/TUTEUR' : 'PARENT/GUARDIAN SIGNATURE'}</div>
-                <div style="border-bottom:1px solid #000;margin-top:30px;"></div>
-                <div style="font-size:9px;margin-top:6px;color:#64748b;">${isNursery ? 'Date et signature' : 'Date & Signature'}</div>
-            </div>
-            <div style="text-align:center;width:200px;">
-                <div style="margin-bottom:8px;font-size:11px;font-weight:600;">${footerLine3}</div>
-                <div style="border-bottom:1px solid #000;margin-top:30px;"></div>
-                <div style="font-size:9px;margin-top:6px;color:#64748b;">${esc(footerLine2)}</div>
-            </div>
-        </div>
-        <div style="text-align:center;font-size:11px;color:#64748b;margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;">
-            ${footerLine1}<br>
-            ${esc(footerLine2)}<br>
-            ${footerLine3}
-        </div>
-    </div></div>`;
-
-            document.getElementById('report-card-content').innerHTML = reportHtml;
-            document.getElementById('report-card-content').style.display = 'block';
-            document.getElementById('report-card-empty').style.display = 'none';
-        }
-
         async function calculateStudentRankFull(studentId, classId, termsToProcess, allAssessments, allMarks) {
             const isHoliday = isHolidayMode();
             const cls = isHoliday ? getSessionClassById(classId) : getClassById(classId);
@@ -9868,7 +9458,7 @@
                 const studentIds = enrollments.map(e => e.student_id);
                 students = state.students.filter(s => studentIds.includes(s.id) && s.status === 'Active');
             } else {
-                students = state.students.filter(s => s.class_id == classId && s.status === 'Active');
+                students = getRosterForClassAndYear(classId, getCurrentYearId());
             }
 
             // Get subjects for this level
@@ -10018,197 +9608,6 @@
 
             return rankDisplay || '—';
         }
-
-        function printReportCard() {
-            const reportCard = document.getElementById('report-card');
-            if (!reportCard) {
-                showToast('Generate a report card first', 'error');
-                return;
-            }
-
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Report Card - ECOLE LA FONTAINE</title>
-            <style>
-                *{margin:0;padding:0;box-sizing:border-box}
-                body{font-family:'Inter',sans-serif;padding:20px;background:#fff}
-                .report-card{max-width:800px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0}
-                .report-header{background:#1a3a5c;color:#fff;padding:24px 28px;display:flex;gap:18px;align-items:center}
-                .report-logo{width:70px;height:70px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:30px;overflow:hidden}
-                .report-logo img{width:100%;height:100%;object-fit:cover}
-                .report-header-text h2{font-size:18px;font-weight:700;margin-bottom:4px}
-                .report-info{display:grid;grid-template-columns:repeat(2,1fr);border-bottom:1px solid #e2e8f0}
-                .report-info-item{padding:12px 20px;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
-                .report-info-item strong{display:block;font-size:10px;text-transform:uppercase;color:#64748b;margin-bottom:4px}
-                .report-subjects{width:100%;border-collapse:collapse}
-                .report-subjects th{background:#e8f0fe;color:#1a3a5c;padding:10px 12px;font-size:11px;font-weight:700;text-align:center}
-                .report-subjects td{padding:8px 12px;font-size:12px;border-bottom:1px solid #e2e8f0;text-align:center}
-                .report-subjects td:first-child{text-align:left;font-weight:600}
-                .report-summary{background:#1a3a5c;color:#fff;display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));padding:14px 20px;text-align:center;gap:12px}
-                .summary-label{font-size:9px;opacity:.7;text-transform:uppercase}
-                .summary-value{font-size:17px;font-weight:700;margin-top:4px}
-                .report-footer{padding:14px 20px;background:#f8fafc;text-align:center;font-size:11px;color:#64748b;font-style:italic;border-top:1px solid #e2e8f0}
-                .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
-                .grade-Ap,.grade-A{background:#d1fae5;color:#065f46}
-                .grade-B{background:#fef3c7;color:#92400e}
-                .grade-C{background:#ffedd5;color:#9a3412}
-                .grade-D,.grade-F{background:#fee2e2;color:#991b1b}
-                @media print{body{padding:0}.report-card{box-shadow:none;margin:0}}
-            </style>
-        </head>
-        <body>${reportCard.outerHTML}<script>window.print();<\/script></body>
-        </html>
-    `);
-            printWindow.document.close();
-        }
-
-        function exportReportPDF() {
-            const reportCard = document.getElementById('report-card');
-            if (!reportCard) {
-                showToast('Generate a report card first', 'error');
-                return;
-            }
-
-            html2pdf().set({
-                margin: [0.5, 0.5, 0.5, 0.5],
-                filename: `Report_Card_${_currentReportStudent}_${new Date().toISOString().split('T')[0]}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            }).from(reportCard).save();
-        }
-
-        async function generateAllReports() {
-            const classId = document.getElementById('report-class')?.value;
-            if (!classId) {
-                showToast('Please select a class', 'error');
-                return;
-            }
-
-            const isHoliday = isHolidayMode();
-            let students;
-            if (isHoliday) {
-                const enrollments = (state.sessionEnrollments || []).filter(e => e.session_class_id == classId && e.is_active !== false);
-                const studentIds = enrollments.map(e => e.student_id);
-                students = state.students.filter(s => studentIds.includes(s.id) && s.status === 'Active');
-            } else {
-                students = state.students.filter(s => s.class_id == classId && s.status === 'Active');
-            }
-
-            if (students.length === 0) {
-                showToast('No active students in this class', 'warning');
-                return;
-            }
-
-            showToast(`Generating ${students.length} reports...`, 'info');
-
-            const cls = isHoliday ?
-                (state.sessionClasses || []).find(c => c.id == classId) :
-                state.classes.find(c => c.id == classId);
-
-            const className = cls?.name || 'Class';
-            const safeClassName = className.replace(/[^a-zA-Z0-9]/g, '_');
-
-            let allReportsHtml = `<!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>All Reports - ${esc(className)}</title>
-            <style>
-                *{margin:0;padding:0;box-sizing:border-box}
-                body{font-family:'Inter',sans-serif;padding:20px;background:#fff}
-                .report-card{max-width:800px;margin:20px auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;page-break-after:always}
-                .report-header{background:#1a3a5c;color:#fff;padding:24px 28px;display:flex;gap:18px;align-items:center}
-                .report-logo{width:70px;height:70px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:30px;overflow:hidden}
-                .report-header-text h2{font-size:18px;font-weight:700;margin-bottom:4px}
-                .report-info{display:grid;grid-template-columns:repeat(2,1fr);border-bottom:1px solid #e2e8f0}
-                .report-info-item{padding:12px 20px;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
-                .report-subjects{width:100%;border-collapse:collapse}
-                .report-subjects th{background:#e8f0fe;color:#1a3a5c;padding:10px 12px;font-size:11px;font-weight:700;text-align:center}
-                .report-subjects td{padding:8px 12px;font-size:12px;border-bottom:1px solid #e2e8f0;text-align:center}
-                .report-summary{background:#1a3a5c;color:#fff;display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));padding:14px 20px;text-align:center;gap:12px}
-                .summary-label{font-size:9px;opacity:.7;text-transform:uppercase}
-                .summary-value{font-size:17px;font-weight:700;margin-top:4px}
-                .report-footer{padding:14px 20px;background:#f8fafc;text-align:center;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0}
-                .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
-                .grade-Ap,.grade-A{background:#d1fae5;color:#065f46}
-                .grade-B{background:#fef3c7;color:#92400e}
-                .grade-C{background:#ffedd5;color:#9a3412}
-                .grade-D,.grade-F{background:#fee2e2;color:#991b1b}
-                .btn-group{text-align:center;margin:20px 0;position:sticky;top:0;background:#fff;padding:10px;z-index:100}
-                .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;margin:0 5px}
-                .btn-primary{background:#1a3a5c;color:#fff}
-                .btn-outline{background:transparent;border:1px solid #1a3a5c;color:#1a3a5c}
-                .btn-primary:hover,.btn-outline:hover{opacity:0.8}
-                @media print{
-                    body{padding:0;margin:0}
-                    .report-card{box-shadow:none;margin:0;page-break-after:always}
-                    .btn-group{display:none}
-                }
-            </style>
-        </head>
-        <body>
-            <div class="btn-group">
-                <button class="btn btn-primary" onclick="window.print()">🖨️ Print All Reports</button>
-                <button class="btn btn-outline" onclick="downloadAllReportsPDF()">📑 Download All as PDF</button>
-            </div>
-            <div id="reports-container">`;
-
-            // Store original student selection
-            const originalStudentId = document.getElementById('report-student').value;
-
-            for (const student of students) {
-                document.getElementById('report-student').value = student.id;
-                await generateReportCard();
-                const reportCard = document.getElementById('report-card');
-                if (reportCard) {
-                    allReportsHtml += reportCard.outerHTML;
-                }
-            }
-
-            // Restore original selection
-            if (originalStudentId) {
-                document.getElementById('report-student').value = originalStudentId;
-                await generateReportCard();
-            }
-
-            const safeDate = new Date().toISOString().split('T')[0];
-
-            allReportsHtml += `</div>
-        <div class="btn-group">
-            <button class="btn btn-primary" onclick="window.print()">🖨️ Print All Reports</button>
-            <button class="btn btn-outline" onclick="downloadAllReportsPDF()">📑 Download All as PDF</button>
-        </div>
-        <script>
-            function downloadAllReportsPDF() {
-                const element = document.getElementById('reports-container');
-                html2pdf().set({
-                    margin: [0.5, 0.5, 0.5, 0.5],
-                    filename: 'All_Reports_${safeClassName}_${safeDate}.pdf',
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2 },
-                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-                }).from(element).save();
-            }
-        <\/script>
-        </body>
-        </html>`;
-
-            const blob = new Blob([allReportsHtml], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const printWindow = window.open(url, '_blank');
-            URL.revokeObjectURL(url);
-
-            showToast(`${students.length} reports generated`, 'success');
-        }
-
-        // ==================================================================================
-        // STUDENT PROMOTION MODULE - 100% COMPLETE
-        // Supports individual student selection with checkboxes
-        // ==================================================================================
 
         async function renderStudentPromotion(container) {
             await ensureStateLoaded();
@@ -10531,102 +9930,6 @@
 
         // ==================================================================================
         // renderStudentArchive - COMPLETE
-        // ==================================================================================
-
-        async function renderStudentArchive(el) {
-            await ensureStateLoaded();
-            const archived = state.students.filter(s => s.is_deleted || s.status === 'Graduated' || s.status === 'Transferred');
-            const inactiveStudents = state.students.filter(s => s.status === 'Inactive' && !s.is_deleted);
-            const oneYearAgo = new Date();
-            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-            const autoArchiveCandidates = inactiveStudents.filter(s => new Date(s.updated_at || s.created_at) < oneYearAgo);
-
-            let archivedHtml = '';
-            if (archived.length) {
-                for (const s of archived) {
-                    const cls = getClassById(s.class_id);
-                    archivedHtml += `<tr>
-                <td><strong>${esc(s.first_name + ' ' + s.last_name)}</strong></td>
-                <td><span class="badge badge-neutral">${esc(s.status)}</span></td>
-                <td>${esc(cls?.name || '—')}</td>
-                <td>${fmtDate(s.updated_at || s.created_at)}</td>
-                <td>
-                    <button class="btn btn-sm btn-success" onclick="restoreStudentFull(${s.id})">♻️ Restore</button>
-                    <button class="btn btn-sm btn-danger" onclick="permanentlyDeleteStudent(${s.id})">🗑️ Permanently Delete</button>
-                </td>
-            </tr>`;
-                }
-            } else {
-                archivedHtml = `<tr><td colspan="5" style="text-align:center;padding:var(--lg);color:var(--text-muted)">Archive is empty</td></tr>`;
-            }
-
-            el.innerHTML = `
-        <div class="dash-card">
-            <div class="dash-card-header">
-                <span class="dash-card-title">📦 Student Archive</span>
-                <span class="badge badge-info">${getCurrentPeriod().label}</span>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-warning" onclick="runAutoArchive()">🔄 Run Auto-Archive Now</button>
-                </div>
-            </div>
-            <div class="dash-card-body">
-                ${autoArchiveCandidates.length > 0 ? `<div class="alert alert-info">⚠️ ${autoArchiveCandidates.length} students have been inactive for over 1 year and are ready for archiving. <button class="btn btn-sm btn-primary" onclick="runAutoArchive()">Archive Now</button></div>` : ''}
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr><th>Name</th><th>Status</th><th>Class (Last)</th><th>Last Active</th><th>Action</th></tr>
-                        </thead>
-                        <tbody>${archivedHtml}</tbody>
-                    </table>
-                </div>
-            </div>
-        </div>`;
-        }
-
-        async function runAutoArchive() {
-            const oneYearAgo = new Date();
-            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-            const candidates = state.students.filter(s => s.status === 'Inactive' && !s.is_deleted && new Date(s.updated_at || s.created_at) < oneYearAgo);
-            let archived = 0;
-            for (const s of candidates) {
-                await update('students', s.id, { is_deleted: true, archived_at: new Date().toISOString() });
-                // Try to insert into student_archive table (if it exists)
-                try {
-                    await insert('student_archive', {
-                        original_student_id: s.id,
-                        student_code: s.student_code,
-                        first_name: s.first_name,
-                        last_name: s.last_name,
-                        class_name: getClassById(s.class_id)?.name,
-                        archived_date: new Date().toISOString().split('T')[0],
-                        archived_reason: 'Auto-archived after 1 year of inactivity',
-                        original_data: JSON.stringify(s)
-                    });
-                } catch (e) { /* Table might not exist */ }
-                archived++;
-            }
-            await refreshTable('students');
-            showToast(`✅ Auto-archived ${archived} inactive students`, 'success');
-            renderStudentArchive(document.getElementById('dynamic-content'));
-        }
-
-        async function restoreStudentFull(id) {
-            await update('students', id, { is_deleted: false, status: 'Active', updated_at: new Date().toISOString() });
-            await refreshTable('students');
-            showToast('✅ Student restored', 'success');
-            renderStudentArchive(document.getElementById('dynamic-content'));
-        }
-
-        async function permanentlyDeleteStudent(id) {
-            if (!await confirmDialog('⚠️ WARNING: This will permanently delete the student record. This action CANNOT be undone! Continue?')) return;
-            await remove('students', id);
-            await refreshTable('students');
-            showToast('✅ Student permanently deleted', 'success');
-            renderStudentArchive(document.getElementById('dynamic-content'));
-        }
-
-        // ==================================================================================
-        // renderBulkImport - COMPLETE
         // ==================================================================================
 
         async function renderBulkImport(container) {
@@ -11202,262 +10505,6 @@
         <div id="tt-modal-wrap"></div>`;
         }
 
-        async function loadTimetableData() {
-            const container = document.getElementById('timetable-container');
-            if (!container) return;
-
-            const viewType = document.getElementById('tt-view-type')?.value || 'class';
-            const classId = document.getElementById('tt-class-filter')?.value;
-            const teacherId = document.getElementById('tt-teacher-filter')?.value;
-
-            container.innerHTML = `<div class="loading-container"><div class="spinner"></div><p>Loading timetable...</p></div>`;
-
-            try {
-                let slots = await getAll('timetable_slots');
-
-                const dayOrder = { 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5 };
-                const timeOrder = {};
-                TIMETABLE_TIME_SLOTS.forEach((ts, idx) => { timeOrder[ts] = idx; });
-
-                slots.sort((a, b) => {
-                    if (a.day !== b.day) return (dayOrder[a.day] || 0) - (dayOrder[b.day] || 0);
-                    return (timeOrder[a.time_slot] || 0) - (timeOrder[b.time_slot] || 0);
-                });
-
-                if (viewType === 'class') {
-                    await renderClassTimetableView(container, slots, classId);
-                } else {
-                    await renderTeacherTimetableView(container, slots, teacherId);
-                }
-            } catch (e) {
-                console.error('[Timetable]', e);
-                container.innerHTML = `<div class="alert alert-danger" style="margin:16px">⚠️ Could not load timetable: ${esc(e.message)}</div>`;
-            }
-        }
-
-        async function renderClassTimetableView(container, slots, classIdFilter) {
-            let filteredSlots = slots;
-            if (classIdFilter) filteredSlots = slots.filter(s => String(s.class_id) === String(classIdFilter));
-
-            const days = TIMETABLE_DAYS;
-            const timeSlots = TIMETABLE_TIME_SLOTS;
-
-            const idx = {};
-            for (const s of filteredSlots) {
-                if (!idx[s.day]) idx[s.day] = {};
-                if (!idx[s.day][s.time_slot]) idx[s.day][s.time_slot] = [];
-                idx[s.day][s.time_slot].push(s);
-            }
-
-            const user = getCurrentUser();
-            const isAdmin = user?.role === 'admin';
-            const canEdit = isAdmin;
-            const className = classIdFilter ? (state.classes.find(c => c.id == classIdFilter)?.name || 'All Classes') : 'All Classes';
-
-            let html = `
-        <div style="padding:12px 16px;background:var(--bg-tertiary);border-bottom:1px solid var(--border-light)">
-            <strong>📅 Class Timetable — ${esc(className)}</strong>
-            <span style="margin-left:12px;font-size:12px;">Week of ${new Date().toLocaleDateString()}</span>
-        </div>
-        <table class="data-table" id="timetable-table" style="min-width:800px;font-size:12px">
-            <thead><tr style="background:var(--bg-tertiary)">
-                <th style="min-width:100px">Time / Day</th>
-                ${days.map(d => `<th style="min-width:130px">${d}</th>`).join('')}
-            </tr></thead>
-            <tbody>`;
-
-            for (const ts of timeSlots) {
-                const breakIcon = getBreakIcon(ts);
-                const isBreak = isBreakSlot(ts);
-                const breakLabel = isBreak ? (ts === '10:20-10:40' ? '🍎 MORNING BREAK' : ts === '12:00-13:00' ? '🍽️ LUNCH BREAK' : '☕ AFTERNOON BREAK') : '';
-
-                html += `<tr style="${isBreak ? 'background:var(--bg-tertiary)' : ''}">
-            <td style="font-weight:600;white-space:nowrap;padding:8px 12px">
-                ${ts}${breakIcon ? ` ${breakIcon}` : ''}<br>
-                ${breakLabel ? `<span style="font-size:10px;color:var(--text-muted)">${breakLabel}</span>` : ''}
-            </td>`;
-
-                for (const day of days) {
-                    const daySlots = idx[day]?.[ts] || [];
-                    if (daySlots.length === 0) {
-                        html += `<td style="text-align:center;color:var(--text-muted);${isBreak ? 'font-style:italic' : ''}">
-                    ${isBreak ? (ts === '10:20-10:40' ? '🍎' : ts === '12:00-13:00' ? '🍽️' : '☕') :
-                                (canEdit ? `<button class="btn btn-sm btn-outline" style="font-size:10px;padding:2px 6px" onclick="openAddTimetableSlot('${day}','${ts}')">＋</button>` : '—')}
-                </td>`;
-                    } else {
-                        html += `<td style="padding:4px 6px">`;
-                        for (const sl of daySlots) {
-                            const cls = state.classes.find(c => c.id == sl.class_id);
-                            const subj = state.subjects.find(s => s.id == sl.subject_id);
-                            const tch = state.teachers.find(t => t.id == sl.teacher_id);
-                            html += `<div style="background:var(--role-light,var(--info-bg));border-radius:var(--r-sm);padding:4px 8px;margin:2px 0;border-left:3px solid var(--role-primary,var(--info))">
-                        <div style="font-weight:600;font-size:12px">${esc(subj?.name || '?')}</div>
-                        <div style="color:var(--text-muted);font-size:10px">${esc(cls?.name || '?')}</div>
-                        <div style="color:var(--text-muted);font-size:10px">👤 ${esc(tch?.name || '—')}</div>
-                        ${sl.room ? `<div style="color:var(--text-muted);font-size:10px">📍 Room: ${esc(sl.room)}</div>` : ''}
-                        ${canEdit ? `<div style="margin-top:4px;display:flex;gap:4px">
-                            <button class="btn btn-sm btn-outline" style="font-size:9px;padding:1px 5px" onclick="openEditTimetableSlot(${sl.id})">✏️</button>
-                            <button class="btn btn-sm btn-danger" style="font-size:9px;padding:1px 5px" onclick="deleteTimetableSlot(${sl.id})">🗑️</button>
-                        </div>` : ''}
-                    </div>`;
-                        }
-                        html += `</td>`;
-                    }
-                }
-                html += `</tr>`;
-            }
-
-            html += `</tbody></table>`;
-            container.innerHTML = html;
-        }
-
-        async function renderTeacherTimetableView(container, slots, teacherIdFilter) {
-            const days = TIMETABLE_DAYS;
-            const timeSlots = TIMETABLE_TIME_SLOTS;
-
-            let teachers = state.teachers.filter(t => t.role === 'teacher' && t.is_active !== false);
-            if (teacherIdFilter) {
-                teachers = teachers.filter(t => String(t.id) === String(teacherIdFilter));
-            }
-
-            if (teachers.length === 0) {
-                container.innerHTML = `<div class="alert alert-info" style="margin:16px">No teachers found.</div>`;
-                return;
-            }
-
-            const teacherSlotsMap = {};
-            for (const s of slots) {
-                if (!teacherSlotsMap[s.teacher_id]) teacherSlotsMap[s.teacher_id] = {};
-                if (!teacherSlotsMap[s.teacher_id][s.day]) teacherSlotsMap[s.teacher_id][s.day] = {};
-                if (!teacherSlotsMap[s.teacher_id][s.day][s.time_slot]) teacherSlotsMap[s.teacher_id][s.day][s.time_slot] = [];
-                teacherSlotsMap[s.teacher_id][s.day][s.time_slot].push(s);
-            }
-
-            const user = getCurrentUser();
-            const isAdmin = user?.role === 'admin';
-
-            let html = `
-        <div style="padding:12px 16px;background:var(--bg-tertiary);border-bottom:1px solid var(--border-light)">
-            <strong>👩‍🏫 TEACHER TIMETABLE</strong>
-            <span style="margin-left:12px;font-size:12px;">Week of ${new Date().toLocaleDateString()}</span>
-            <span style="margin-left:12px;font-size:12px;color:var(--text-muted)">${teachers.length} teacher${teachers.length !== 1 ? 's' : ''} shown</span>
-        </div>`;
-
-            for (const teacher of teachers) {
-                const teacherSlots = teacherSlotsMap[teacher.id] || {};
-
-                html += `
-            <div style="margin-top:24px;background:var(--bg-secondary);border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--border-light)">
-                <div style="padding:12px 16px;background:var(--bg-tertiary);font-weight:700;border-bottom:1px solid var(--border-light)">
-                    👤 ${esc(teacher.name)} 
-                    ${teacher.department ? `<span style="font-weight:400;color:var(--text-muted)">(${esc(teacher.department)})</span>` : ''}
-                </div>
-                <div style="overflow-x:auto">
-                    <table class="data-table" style="min-width:700px;font-size:12px;border-collapse:collapse">
-                        <thead>
-                            <tr style="background:var(--bg-tertiary)">
-                                <th style="min-width:100px;padding:10px 12px">Time / Day</th>
-                                ${days.map(d => `<th style="min-width:140px;padding:10px 12px;text-align:center">${d}</th>`).join('')}
-                            </tr>
-                        </thead>
-                        <tbody>`;
-
-                for (const ts of timeSlots) {
-                    const breakIcon = getBreakIcon(ts);
-                    const isBreak = isBreakSlot(ts);
-                    const breakLabel = isBreak ? (ts === '10:20-10:40' ? '🍎 BREAK' : ts === '12:00-13:00' ? '🍽️ LUNCH' : '☕ BREAK') : '';
-
-                    html += `
-                <tr style="${isBreak ? 'background:var(--bg-tertiary)' : ''}">
-                    <td style="font-weight:600;white-space:nowrap;padding:8px 12px;vertical-align:middle">
-                        ${ts}${breakIcon ? ` ${breakIcon}` : ''}<br>
-                        ${breakLabel ? `<span style="font-size:10px;color:var(--text-muted)">${breakLabel}</span>` : ''}
-                    </td>`;
-
-                    for (const day of days) {
-                        const daySlots = teacherSlots[day]?.[ts] || [];
-
-                        if (daySlots.length === 0) {
-                            html += `<td style="text-align:center;color:var(--text-muted);${isBreak ? 'font-style:italic' : ''};padding:8px 12px">
-                        ${isBreak ? (ts === '10:20-10:40' ? '🍎' : ts === '12:00-13:00' ? '🍽️' : '☕') : '—'}
-                    </td>`;
-                        } else {
-                            html += `<td style="padding:4px 6px;vertical-align:top">`;
-                            for (const sl of daySlots) {
-                                const cls = state.classes.find(c => c.id == sl.class_id);
-                                const subj = state.subjects.find(s => s.id == sl.subject_id);
-                                const bgColor = subj ? `hsl(${((subj.id || 0) * 47) % 360}, 60%, 92%)` : 'var(--info-bg)';
-
-                                html += `
-                            <div style="background:${bgColor};border-radius:var(--r-sm);padding:6px 10px;margin:4px 0;border-left:3px solid hsl(${((subj?.id || 0) * 47) % 360}, 60%, 55%)">
-                                <div style="font-weight:700;font-size:12px">${esc(subj?.name || '?')}</div>
-                                <div style="font-size:11px;color:var(--text-secondary)">📚 ${esc(cls?.name || '?')}</div>
-                                ${sl.room ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">📍 Room: ${esc(sl.room)}</div>` : ''}
-                                ${sl.notes ? `<div style="font-size:10px;color:var(--text-muted);font-style:italic">📝 ${esc(sl.notes)}</div>` : ''}
-                                ${isAdmin ? `
-                                    <div style="margin-top:6px;display:flex;gap:4px;justify-content:flex-end">
-                                        <button class="btn btn-sm btn-outline" style="font-size:9px;padding:2px 8px" onclick="openEditTimetableSlot(${sl.id})">✏️</button>
-                                        <button class="btn btn-sm btn-danger" style="font-size:9px;padding:2px 8px" onclick="deleteTimetableSlot(${sl.id})">🗑️</button>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `;
-                            }
-                            html += `</td>`;
-                        }
-                    }
-                    html += `</tr>`;
-                }
-
-                html += `
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-            }
-
-            const totalSlots = slots.length;
-            const activeTeachers = new Set(slots.map(s => s.teacher_id)).size;
-
-            html += `
-        <div style="margin-top:20px;padding:12px 16px;background:var(--bg-tertiary);border-radius:var(--r-lg);display:flex;gap:20px;flex-wrap:wrap;font-size:13px">
-            <span>📊 <strong>${totalSlots}</strong> total slots</span>
-            <span>👩‍🏫 <strong>${activeTeachers}</strong> teachers with assigned slots</span>
-            <span>📅 <strong>${days.length}</strong> days</span>
-            <span>⏰ <strong>${timeSlots.filter(ts => !isBreakSlot(ts)).length}</strong> teaching periods per day</span>
-        </div>
-    `;
-
-            container.innerHTML = html;
-        }
-
-        function toggleTimetableView() {
-            const viewType = document.getElementById('tt-view-type')?.value;
-            const classFilter = document.getElementById('tt-class-filter');
-            const teacherFilter = document.getElementById('tt-teacher-filter');
-
-            if (viewType === 'teacher') {
-                if (classFilter) classFilter.style.display = 'none';
-                if (teacherFilter) {
-                    teacherFilter.style.display = 'inline-flex';
-                    if (teacherFilter.options.length <= 1) {
-                        const teachers = state.teachers.filter(t => t.role === 'teacher' && t.is_active !== false);
-                        teacherFilter.innerHTML = '<option value="">All Teachers</option>' +
-                            teachers.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
-                    }
-                }
-            } else {
-                if (classFilter) classFilter.style.display = 'inline-flex';
-                if (teacherFilter) teacherFilter.style.display = 'none';
-            }
-            loadTimetableData();
-        }
-
-        // ==================================================================================
-        // STAFF TIMETABLE
-        // ==================================================================================
-
         async function renderStaffTimetable(container) {
             await ensureStateLoaded();
             const teachers = state.teachers.filter(t => t.role === 'teacher' && t.is_active !== false);
@@ -11501,13 +10548,15 @@
             const isAdmin = user?.role === 'admin';
             const isAccountant = user?.role === 'accountant';
 
-            const students = isHoliday ? getCurrentStudents() : state.students;
-            const classes = isHoliday ? state.sessionClasses : state.classes;
+            // Student List always shows every student in their real class — holiday classes
+            // are only used in Academics/Assignments pages during holiday mode.
+            const students = state.students;
+            const classes = state.classes;
 
             el.innerHTML = `
                 <div class="dash-card">
                     <div class="dash-card-header">
-                        <span class="dash-card-title">👥 Students ${isHoliday ? '(Holiday)' : ''}</span>
+                        <span class="dash-card-title">👥 Students</span>
                         <span class="badge badge-info">${getCurrentPeriod().label}</span>
                         <div class="btn-group">
                             <button class="btn btn-sm btn-primary" onclick="navigateTo('enroll-student')">➕ Enroll Student</button>
@@ -11548,8 +10597,8 @@
         }
 
         function renderStudentsTable() {
-            const isHoliday = isHolidayMode();
-            let list = isHoliday ? getCurrentStudents() : state.students;
+            // Student List always shows all students in their real classes
+            let list = state.students;
 
             if (_studClass) list = list.filter(s => s.class_id == _studClass);
             if (_studStatus) list = list.filter(s => s.status === _studStatus);
@@ -11576,9 +10625,7 @@
             const canRecordPayment = (isAdmin || isAccountant);
 
             tbody.innerHTML = page.length ? page.map(s => {
-                const cls = isHoliday ?
-                    (state.sessionClasses || []).find(c => c.id == s.class_id) :
-                    (state.classes || []).find(c => c.id == s.class_id);
+                const cls = (state.classes || []).find(c => c.id == s.class_id);
                 return `
                     <tr>
                         <td><code>${esc(s.student_code || '—')}</code></td>
@@ -11618,7 +10665,9 @@
         async function renderEnrollStudent(el) {
             await ensureStateLoaded();
             const isHoliday = isHolidayMode();
-            const classes = isHoliday ? state.sessionClasses : state.classes;
+            // New registrations always use the real class structure — holiday classes are
+            // only for academics/assignments, never for enrolling new students or fees.
+            const classes = state.classes;
 
             el.innerHTML = `
         <div class="dash-card">
@@ -11680,10 +10729,8 @@
                     </div>
                 </div>
 
-                // Replace the btn-group section with:
-<div class="btn-group" style="margin-top:var(--lg)">
-    <button class="btn btn-success" onclick="submitEnrollStudent(false)">✅ Enroll Student</button>
-    <button class="btn btn-primary" onclick="submitEnrollStudent(true)">📄 Enroll & Download Receipt</button>
+                <div class="btn-group" style="margin-top:var(--lg)">
+    <button class="btn btn-success" onclick="submitEnrollStudent()">✅ Enroll Student</button>
     <button class="btn btn-outline" onclick="navigateTo('student-list')">Cancel</button>
 </div>
             </div>
@@ -11771,20 +10818,19 @@
             if (!classId) return showErr('Please select a class');
             if (!guardian) return showErr('Guardian name is required');
 
-            // Get selected fees with amounts
+            // Get selected fees with amounts — a checked fee with amount 0 still gets assigned
+            // to the student (it just isn't charging anything yet), it is NOT skipped.
             const selectedFees = [];
             document.querySelectorAll('.enroll-fee-cb:checked').forEach(cb => {
                 const feeId = cb.dataset.feeId;
                 const categoryId = cb.value;
                 const amountInput = document.querySelector(`.enroll-fee-amount[data-fee-id="${feeId}"]`);
-                const amount = parseFloat(amountInput?.value) || 0;
-                if (amount > 0) {
-                    selectedFees.push({ feeId: parseInt(feeId), categoryId: parseInt(categoryId), amount });
-                }
+                const amount = parseFloat(amountInput?.value);
+                selectedFees.push({ feeId: parseInt(feeId), categoryId: parseInt(categoryId), amount: isNaN(amount) ? 0 : amount });
             });
 
             if (selectedFees.length === 0) {
-                return showErr('Please select at least one fee with a valid amount');
+                return showErr('Please select at least one fee to assign to this student');
             }
 
             // Get payment info
@@ -11884,10 +10930,12 @@
                     amount: fee.amount,
                     paid_amount: appliedCredit,
                     is_paid: amountToAdd === 0,
+                    is_approved: false,
                     is_waived: false,
                     manually_deleted: false,
                     is_template_based: true,
                     due_date: dueDate,
+                    notes: `New enrollment fee assignment for ${first} ${last}`,
                     created_at: new Date().toISOString()
                 });
 
@@ -11910,11 +10958,10 @@
                     paid: appliedCredit,
                     remaining: amountToAdd
                 });
-
-                // If there's a remaining amount to be paid in cash
-                if (amountToAdd > 0) {
-                    totalPaid += amountToAdd;
-                }
+                // Note: amountToAdd (what's still owed after credit) is NOT added to totalPaid.
+                // Enrollment only ever records what was actually collected (store credit here);
+                // any cash/mobile-money collected at the counter is recorded separately via
+                // Record Payment, same as every other payment in the system.
             }
 
             // 3. Record payment if total > 0
@@ -13089,166 +12136,6 @@
             renderSiblingLinking(document.getElementById('dynamic-content'));
         }
 
-        async function openEditFamilyModalFull(familyId) {
-            const f = await getById('families', familyId);
-            if (!f) return;
-
-            showModal(`
-        <div class="modal-overlay">
-            <div class="modal">
-                <div class="modal-header">
-                    <h3>✏️ Edit Family: ${esc(f.family_code)}</h3>
-                    <button class="modal-close" onclick="closeModal()">✕</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-grid">
-                        <div class="form-group"><label>Guardian Name</label><input type="text" id="edit-family-guardian" value="${esc(f.guardian_name || '')}"></div>
-                        <div class="form-group"><label>Guardian Phone</label><input type="text" id="edit-family-phone" value="${esc(f.guardian_phone || '')}"></div>
-                        <div class="form-group"><label>Guardian Email</label><input type="email" id="edit-family-email" value="${esc(f.guardian_email || '')}"></div>
-                        <div class="form-group full"><label>Address</label><textarea id="edit-family-address" rows="2">${esc(f.address || '')}</textarea></div>
-                        <div class="form-group"><label>Discount Amount (RWF)</label><input type="number" id="edit-family-discount" value="${f.discount_amount || 0}" step="5000"></div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-                    <button class="btn btn-primary" onclick="updateFamilyFull(${familyId})">Save</button>
-                </div>
-            </div>
-        </div>
-    `);
-        }
-
-        async function updateFamilyFull(familyId) {
-            await update('families', familyId, {
-                guardian_name: document.getElementById('edit-family-guardian')?.value,
-                guardian_phone: document.getElementById('edit-family-phone')?.value,
-                guardian_email: document.getElementById('edit-family-email')?.value,
-                address: document.getElementById('edit-family-address')?.value,
-                discount_amount: parseFloat(document.getElementById('edit-family-discount')?.value) || 0
-            });
-
-            await refreshTable('families');
-            closeModal();
-            showToast('✅ Family updated', 'success');
-            renderSiblingLinking(document.getElementById('dynamic-content'));
-        }
-
-        async function unlinkStudentFull(studentId, studentName) {
-            if (!await confirmDialog(`Remove ${studentName} from family?`)) return;
-            await update('students', studentId, { family_id: null });
-            await refreshTable('students');
-            showToast('✅ Student unlinked', 'success');
-            renderSiblingLinking(document.getElementById('dynamic-content'));
-        }
-
-        async function deleteFamilyFull(familyId, familyCode) {
-            const linked = state.students.filter(s => s.family_id === familyId).length;
-            const msg = linked ? `Family "${familyCode}" has ${linked} linked students. Deleting will unlink them. Continue?` :
-                `Delete family "${familyCode}"?`;
-
-            if (!await confirmDialog(msg)) return;
-
-            await updateByFilter('students', `family_id=eq.${familyId}`, { family_id: null });
-            await remove('families', familyId);
-            await refreshTable('families');
-            await refreshTable('students');
-
-            showToast('✅ Family deleted', 'success');
-            renderSiblingLinking(document.getElementById('dynamic-content'));
-        }
-
-        async function showFamilyFeesSummary(familyId) {
-            const summary = getFamilyFeeSummary(familyId);
-            if (!summary) {
-                showToast('Family not found', 'error');
-                return;
-            }
-
-            const { family, members, totalFees, totalPaid, totalBalance, memberCount, discountAmount } = summary;
-
-            showModal(`
-        <div class="modal-overlay">
-            <div class="modal modal-lg" style="max-width:620px">
-                <div class="modal-header">
-                    <h3>👨‍👩‍👧 Family Fees — ${esc(family.family_code)}</h3>
-                    <button class="modal-close" onclick="closeModal()">✕</button>
-                </div>
-                <div class="modal-body">
-                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
-                        <div class="stat-card" style="padding:12px;text-align:center">
-                            <div class="stat-value">${memberCount}</div>
-                            <div class="stat-label">Members</div>
-                        </div>
-                        <div class="stat-card" style="padding:12px;text-align:center">
-                            <div class="stat-value">${fmtCurrency(totalFees)}</div>
-                            <div class="stat-label">Total Fees</div>
-                        </div>
-                        <div class="stat-card" style="padding:12px;text-align:center">
-                            <div class="stat-value">${fmtCurrency(totalPaid)}</div>
-                            <div class="stat-label">Total Paid</div>
-                        </div>
-                        <div class="stat-card" style="padding:12px;text-align:center">
-                            <div class="stat-value" style="color:${totalBalance > 0 ? 'var(--danger)' : 'var(--success)'}">${fmtCurrency(totalBalance)}</div>
-                            <div class="stat-label">Total Balance</div>
-                        </div>
-                    </div>
-                    ${discountAmount > 0 ? `<div class="alert alert-info">🎁 Family Discount: ${fmtCurrency(discountAmount)} per term</div>` : ''}
-                    <div class="table-wrapper">
-                        <table class="data-table">
-                            <thead>
-                                <tr><th>Student</th><th style="text-align:right">Expected</th><th style="text-align:right">Paid</th><th style="text-align:right">Balance</th><th>Status</th></tr>
-                            </thead>
-                            <tbody>
-                                ${members.map(s => {
-                const b = getFullStudentBalance(s.id);
-                const status = b.balance === 0 ? '✅ Paid' : (b.paid > 0 ? '⚠️ Partial' : '🔴 Due');
-                return `<tr>
-                                        <td><strong>${esc(studentFullName(s))}</strong><br><small style="color:var(--text-muted)">${esc(getClassById(s.class_id)?.name || '')}</small></td>
-                                        <td style="text-align:right">${fmtCurrency(b.total)}</td>
-                                        <td style="text-align:right">${fmtCurrency(b.paid)}</td>
-                                        <td style="text-align:right;color:${b.balance > 0 ? '#ef4444' : '#22c55e'}">${fmtCurrency(b.balance)}</td>
-                                        <td><span class="badge ${b.balance === 0 ? 'badge-success' : (b.paid > 0 ? 'badge-warning' : 'badge-danger')}">${status}</span></td>
-                                    </tr>`;
-            }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-outline" onclick="exportFamilyFeesExcel(${familyId})">📥 Export Excel</button>
-                    <button class="btn btn-outline" onclick="closeModal()">Close</button>
-                </div>
-            </div>
-        </div>
-    `);
-        }
-
-        function exportFamilyFeesExcel(familyId) {
-            const summary = getFamilyFeeSummary(familyId);
-            if (!summary) return;
-
-            const data = summary.members.map(s => {
-                const b = getFullStudentBalance(s.id);
-                return {
-                    'Student': studentFullName(s),
-                    'Class': getClassById(s.class_id)?.name || '',
-                    'Expected (RWF)': b.total,
-                    'Paid (RWF)': b.paid,
-                    'Balance (RWF)': b.balance,
-                    'Status': b.balance === 0 ? 'Paid' : (b.paid > 0 ? 'Partial' : 'Unpaid')
-                };
-            });
-
-            exportToExcel(data, `Family_Fees_${summary.family.family_code}`);
-        }
-
-        // ==================================================================================
-        // FINANCIAL REPORTS MODULE - 100% COMPLETE
-        // ==================================================================================
-
-        let monthlyChart = null;
-        let methodChart = null;
-
         async function renderFinancialReports(container) {
             await ensureStateLoaded();
             const yearId = getCurrentYearId();
@@ -13257,29 +12144,28 @@
             const studentFees = isHoliday ? state.studentFees : state.studentFees.filter(f => f.academic_year_id === yearId);
             const payments = isHoliday ? state.payments : state.payments.filter(p => p.academic_year_id === yearId);
             const feeAmounts = isHoliday ? state.feeAmounts : state.feeAmounts.filter(f => f.academic_year_id === yearId);
-            const students = isHoliday ? getCurrentStudents() : state.students.filter(s => s.status === 'Active');
+            const students = state.students.filter(s => s.status === 'Active') /* finance: never restrict to holiday-enrolled */;
 
-            // Calculate totals
-            const totalFees = feeAmounts.reduce((a, f) => a + f.amount, 0);
+            // Calculate totals — "expected" must come from actually assigned & APPROVED fees,
+            // never the fee-structure catalog (which lists every possible amount regardless of
+            // whether it was ever charged or confirmed to a student).
+            const approvedFees = studentFees.filter(f => f.is_approved !== false && !f.is_waived && !f.is_credit);
+            const totalFees = approvedFees.reduce((a, f) => a + f.amount, 0);
             const totalPaid = payments.reduce((a, p) => a + p.amount, 0);
             const totalPending = totalFees - totalPaid;
             const collectionRate = totalFees > 0 ? (totalPaid / totalFees) * 100 : 0;
 
-            // Class-wise collection
-            const classes = isHoliday ? state.sessionClasses : state.classes;
+            // Class-wise collection — finance always groups by real classes, never holiday classes
+            const classes = state.classes;
             const classData = classes.map(cls => {
-                let classStudents;
-                if (isHoliday) {
-                    const enrollments = (state.sessionEnrollments || []).filter(e => e.session_class_id == cls.id && e.is_active !== false);
-                    const studentIds = enrollments.map(e => e.student_id);
-                    classStudents = state.students.filter(s => studentIds.includes(s.id) && s.status === 'Active');
-                } else {
-                    classStudents = state.students.filter(s => s.class_id === cls.id && s.status === 'Active');
-                }
-                const expected = feeAmounts.filter(f => f.class_id === cls.id).reduce((a, f) => a + f.amount, 0);
+                const classStudents = state.students.filter(s => s.class_id === cls.id && s.status === 'Active');
+                const expected = approvedFees.filter(f => {
+                    const st = getStudentById(f.student_id);
+                    return st && st.class_id === cls.id;
+                }).reduce((a, f) => a + f.amount, 0);
                 const collected = payments.filter(p => {
                     const st = getStudentById(p.student_id);
-                    return st && (isHoliday ? getCurrentStudents().includes(st) : st.class_id === cls.id);
+                    return st && (st.class_id === cls.id);
                 }).reduce((a, p) => a + p.amount, 0);
                 const pending = expected - collected;
                 const rate = expected > 0 ? (collected / expected) * 100 : 0;
@@ -13526,42 +12412,23 @@
             }, 100);
         }
 
-        function exportFinancialReportData() {
-            const yearId = getCurrentYearId();
-            const isHoliday = isHolidayMode();
-
-            const payments = isHoliday ? state.payments : state.payments.filter(p => p.academic_year_id === yearId);
-            const feeAmounts = isHoliday ? state.feeAmounts : state.feeAmounts.filter(f => f.academic_year_id === yearId);
-
-            const totalFees = feeAmounts.reduce((a, f) => a + f.amount, 0);
-            const totalPaid = payments.reduce((a, p) => a + p.amount, 0);
-
-            const exportData = [{
-                'Report Date': new Date().toLocaleDateString(),
-                'Period': getCurrentPeriod().label,
-                'Total Expected (RWF)': totalFees,
-                'Total Collected (RWF)': totalPaid,
-                'Outstanding (RWF)': totalFees - totalPaid,
-                'Collection Rate (%)': totalFees > 0 ? ((totalPaid / totalFees) * 100).toFixed(1) : 0
-            }];
-
-            exportToExcel(exportData, `Financial_Report_${new Date().toISOString().split('T')[0]}`);
-            showToast('✅ Financial report exported', 'success');
-        }
-
         function exportClassBreakdown() {
             const isHoliday = isHolidayMode();
-            const classes = isHoliday ? state.sessionClasses : state.classes;
+            const classes = state.classes; // Finance: always real classes, never holiday classes
             const yearId = getCurrentYearId();
-            const feeAmounts = isHoliday ? state.feeAmounts : state.feeAmounts.filter(f => f.academic_year_id === yearId);
+            const studentFees = isHoliday ? state.studentFees : state.studentFees.filter(f => f.academic_year_id === yearId);
+            const approvedFees = studentFees.filter(f => f.is_approved !== false && !f.is_waived && !f.is_credit);
             const payments = isHoliday ? state.payments : state.payments.filter(p => p.academic_year_id === yearId);
 
             const data = classes.map(cls => {
-                const classStudents = isHoliday ? getCurrentStudents().filter(s => s.class_id === cls.id) : state.students.filter(s => s.class_id === cls.id && s.status === 'Active');
-                const expected = feeAmounts.filter(f => f.class_id === cls.id).reduce((a, f) => a + f.amount, 0);
+                const classStudents = state.students.filter(s => s.class_id === cls.id && s.status === 'Active');
+                const expected = approvedFees.filter(f => {
+                    const st = getStudentById(f.student_id);
+                    return st && st.class_id === cls.id;
+                }).reduce((a, f) => a + f.amount, 0);
                 const collected = payments.filter(p => {
                     const st = getStudentById(p.student_id);
-                    return st && (isHoliday ? getCurrentStudents().includes(st) : st.class_id === cls.id);
+                    return st && (st.class_id === cls.id);
                 }).reduce((a, p) => a + p.amount, 0);
                 const pending = expected - collected;
                 const rate = expected > 0 ? (collected / expected) * 100 : 0;
@@ -13629,48 +12496,6 @@
             showToast('✅ Recent payments exported', 'success');
         }
 
-        function printFinancialReport() {
-            const reportContent = document.querySelector('#dynamic-content .stats-grid, #dynamic-content .two-col, #dynamic-content .dash-card');
-            if (!reportContent) return;
-
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head><title>Financial Report - ECOLE LA FONTAINE</title>
-        <style>
-            body{font-family:Arial,sans-serif;padding:20px}
-            h1{text-align:center;color:#1a3a5c}
-            table{width:100%;border-collapse:collapse;margin:10px 0}
-            th,td{border:1px solid #ccc;padding:8px;text-align:left}
-            th{background:#f0f0f0}
-            .summary{display:flex;gap:20px;margin:20px 0;flex-wrap:wrap}
-            .summary-card{border:1px solid #ccc;padding:15px;border-radius:8px;min-width:150px;text-align:center}
-            .summary-value{font-size:20px;font-weight:bold;color:#1a3a5c}
-            @media print{body{padding:0}}
-        </style>
-        </head>
-        <body>
-            <h1>🏫 ECOLE LA FONTAINE</h1>
-            <h2 style="text-align:center">Financial Report</h2>
-            <p style="text-align:center">Generated on ${new Date().toLocaleString()}</p>
-            <p style="text-align:center">Period: ${getCurrentPeriod().label}</p>
-            ${document.querySelector('.stats-grid')?.outerHTML || ''}
-            ${document.querySelector('.two-col')?.outerHTML || ''}
-            ${document.querySelectorAll('.dash-card').length ? Array.from(document.querySelectorAll('.dash-card')).map(card => card.outerHTML).join('') : ''}
-            <p style="text-align:center;margin-top:30px;font-size:11px;color:#666;">This is an official financial report from ECOLE LA FONTAINE School Management System</p>
-        </body>
-        </html>
-    `);
-            printWindow.document.close();
-            printWindow.print();
-        }
-
-        // ==================================================================================
-        // MISSING FUNCTIONS - COMPLETE IMPLEMENTATION
-        // ==================================================================================
-
-        // 1. loadReportStudents
         async function loadReportStudents() {
             const classId = document.getElementById('report-class')?.value;
             if (!classId) {
@@ -13686,7 +12511,7 @@
                 const studentIds = enrollments.map(e => e.student_id);
                 students = state.students.filter(s => studentIds.includes(s.id) && s.status === 'Active');
             } else {
-                students = state.students.filter(s => s.class_id == classId && s.status === 'Active');
+                students = getRosterForClassAndYear(classId, getCurrentYearId());
             }
             students.sort((a, b) => a.last_name.localeCompare(b.last_name));
 
@@ -14755,7 +13580,7 @@
                     const score = termScores[termsToProcess[0]?.id]?.subjects[subject.id];
                     const pct = score?.percentage;
                     reportHtml +=
-                        `<tr><td style="font-weight:600">${subject.name.toUpperCase()}</td><td style="text-align:center">${score?.max || subject.mg_max}</td><td style="text-align:center;font-weight:700">${score?.total !== null ? score.total.toFixed(1) : '—'}</td><td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td></tr>`;
+                        `<tr><td style="font-weight:600">${subject.name.toUpperCase()}</td><td style="text-align:center">${score?.max || subject.mg_max}</td><td style="text-align:center;font-weight:700">${(score && score.total !== null) ? score.total.toFixed(1) : '—'}</td><td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td></tr>`;
                 }
                 reportHtml += `</tbody></table>`;
             } else if (isPreMidterm && !isNursery) {
@@ -14765,7 +13590,7 @@
                     const score = termScores[termsToProcess[0]?.id]?.subjects[subject.id];
                     const pct = score?.percentage;
                     reportHtml +=
-                        `<tr><td style="font-weight:600">${subject.name}</td><td style="text-align:center">${score?.max || 100}</td><td style="text-align:center;font-weight:700">${score?.total !== null ? score.total.toFixed(1) : '—'}</td><td style="text-align:center">${pct !== null ? pct.toFixed(1) + '%' : '—'}</td><td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td></tr>`;
+                        `<tr><td style="font-weight:600">${subject.name}</td><td style="text-align:center">${score?.max || 100}</td><td style="text-align:center;font-weight:700">${(score && score.total !== null) ? score.total.toFixed(1) : '—'}</td><td style="text-align:center">${pct !== null ? pct.toFixed(1) + '%' : '—'}</td><td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td></tr>`;
                 }
                 reportHtml += `</tbody></table>`;
             } else if (isAnnual) {
@@ -14796,7 +13621,7 @@
                     const pct = score?.percentage;
                     const isCopied = subject.appears_only_post_midterm && score?.mg === score?.ex && score?.mg !== null;
                     reportHtml +=
-                        `<tr><td style="font-weight:600">${subject.name.toUpperCase()}</td><td style="text-align:center">${score?.mg !== null ? score.mg.toFixed(1) : '—'}${isCopied ? '<sup title="Copied from EX" style="font-size:.6rem">★</sup>' : ''}</td><td style="text-align:center">${score?.ex !== null ? score.ex.toFixed(1) : '—'}</td><td style="text-align:center;font-weight:700">${score?.total !== null ? score.total.toFixed(1) : '—'}</td><td style="text-align:center">${score?.max || 0}</td><td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td></tr>`;
+                        `<tr><td style="font-weight:600">${subject.name.toUpperCase()}</td><td style="text-align:center">${(score && score.mg !== null) ? score.mg.toFixed(1) : '—'}${isCopied ? '<sup title="Copied from EX" style="font-size:.6rem">★</sup>' : ''}</td><td style="text-align:center">${(score && score.ex !== null) ? score.ex.toFixed(1) : '—'}</td><td style="text-align:center;font-weight:700">${(score && score.total !== null) ? score.total.toFixed(1) : '—'}</td><td style="text-align:center">${score?.max || 0}</td><td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td></tr>`;
                 }
                 reportHtml += `</tbody></table>`;
             } else {
@@ -14807,7 +13632,7 @@
                     const pct = score?.percentage;
                     const isCopied = subject.appears_only_post_midterm && score?.mg === score?.ex && score?.mg !== null;
                     reportHtml +=
-                        `<tr><td style="font-weight:600">${subject.name}</td><td style="text-align:center">${score?.mg !== null ? score.mg.toFixed(1) : '—'}${isCopied ? '<sup title="Copied from EX" style="font-size:.6rem">★</sup>' : ''}</td><td style="text-align:center">${score?.ex !== null ? score.ex.toFixed(1) : '—'}</td><td style="text-align:center;font-weight:700">${score?.total !== null ? score.total.toFixed(1) : '—'}</td><td style="text-align:center">${score?.max || 0}</td><td style="text-align:center">${pct !== null ? pct.toFixed(1) + '%' : '—'}</td><td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td></tr>`;
+                        `<tr><td style="font-weight:600">${subject.name}</td><td style="text-align:center">${(score && score.mg !== null) ? score.mg.toFixed(1) : '—'}${isCopied ? '<sup title="Copied from EX" style="font-size:.6rem">★</sup>' : ''}</td><td style="text-align:center">${(score && score.ex !== null) ? score.ex.toFixed(1) : '—'}</td><td style="text-align:center;font-weight:700">${(score && score.total !== null) ? score.total.toFixed(1) : '—'}</td><td style="text-align:center">${score?.max || 0}</td><td style="text-align:center">${pct !== null ? pct.toFixed(1) + '%' : '—'}</td><td style="text-align:center"><span class="badge ${getGradeClass(pct)}">${pct !== null ? getGrade(pct) : '—'}</span></td></tr>`;
                 }
                 reportHtml += `</tbody></table>`;
             }
@@ -14954,7 +13779,7 @@
                 const studentIds = enrollments.map(e => e.student_id);
                 students = state.students.filter(s => studentIds.includes(s.id) && s.status === 'Active');
             } else {
-                students = state.students.filter(s => s.class_id == classId && s.status === 'Active');
+                students = getRosterForClassAndYear(classId, getCurrentYearId());
             }
 
             if (students.length === 0) { showToast('No active students in this class', 'warning'); return; }
@@ -15194,7 +14019,10 @@
             const preselId = localStorage.getItem('elf_pay_student');
             localStorage.removeItem('elf_pay_student');
 
-            const students = isHoliday ? getCurrentStudents() : state.students.filter(s => s.status === 'Active');
+            const students = state.students.filter(s => s.status === 'Active') /* finance: never restrict to holiday-enrolled */;
+            window._payAllStudents = students;
+            window._paySelected = new Set(preselId ? [parseInt(preselId)] : []);
+            window._payAllocations = new Map(); // key `${studentId}:${feeId}` -> typed amount
 
             el.innerHTML = `
                 <div class="dash-card">
@@ -15203,34 +14031,23 @@
                         <span class="badge badge-info">${getCurrentPeriod().label}</span>
                     </div>
                     <div class="dash-card-body">
-                        <div class="form-grid" style="margin-bottom:20px">
-                            <div class="form-group">
-                                <label>Student *</label>
-                                <select id="pay-student" onchange="loadStudentPaymentDetails()">
-                                    <option value="">— Select student —</option>
-                                    ${students.map(s => `<option value="${s.id}" ${s.id == preselId ? 'selected' : ''}>${esc(s.first_name)} ${esc(s.last_name)} (${esc(s.student_code || 'STU')})</option>`).join('')}
-                                </select>
+                        <div class="form-group">
+                            <label>Search & Select Students *</label>
+                            <input type="text" id="pay-search" placeholder="Type a name or student code to filter…"
+                                oninput="window.filterPayStudents(this.value)" style="width:100%;padding:8px 12px;margin-bottom:8px">
+                            <div style="display:flex;gap:10px;margin-bottom:6px">
+                                <button class="btn btn-sm btn-outline" onclick="window.paySelectAllVisible()">Select all visible</button>
+                                <button class="btn btn-sm btn-outline" onclick="window.payClearSelection()">Clear selection</button>
+                                <span id="pay-selected-count" style="align-self:center;font-size:.8rem;color:var(--text-muted)">0 selected</span>
                             </div>
-                            <div class="form-group"><label>Class</label><input type="text" id="pay-student-class" readonly style="background:var(--bg-tertiary)"></div>
+                            <div id="pay-student-list" style="max-height:220px;overflow-y:auto;border:1px solid var(--border-medium);border-radius:8px;padding:6px;margin-bottom:16px"></div>
                         </div>
 
-                        <div style="margin-bottom:20px">
-                            <div style="display:flex;justify-content:space-between;margin-bottom:12px">
-                                <strong>📋 FEE CATEGORIES</strong>
-                            </div>
-                            <div class="table-wrapper">
-                                <table class="data-table" style="width:100%">
-                                    <thead><tr><th>Fee Category</th><th style="text-align:right">Amount</th><th style="text-align:right">Paid</th><th style="text-align:right">Remaining</th></tr></thead>
-                                    <tbody id="record-fee-tbody"><tr><td colspan="4" style="text-align:center;padding:40px">Select a student to view fees</td></tr></tbody>
-                                    <tfoot id="record-fee-total"></tfoot>
-                                </table>
-                            </div>
-                        </div>
+                        <div id="pay-fee-sections"><p style="text-align:center;color:var(--text-muted);padding:20px">Select one or more students above to see their fees</p></div>
 
-                        <div style="margin-bottom:20px">
-                            <strong>💳 PAYMENT DETAILS</strong>
+                        <div style="margin:20px 0">
+                            <strong>💳 PAYMENT DETAILS (applied to every selected student's payment)</strong>
                             <div class="form-grid">
-                                <div class="form-group"><label>Amount Paid *</label><input type="number" id="pay-amount" min="0" step="1000" placeholder="Enter amount"></div>
                                 <div class="form-group"><label>Payment Date *</label><input type="date" id="pay-date" value="${new Date().toISOString().split('T')[0]}"></div>
                                 <div class="form-group"><label>Payment Method</label><select id="pay-method"><option>Cash</option><option>Mobile-Money</option><option>Bank Transfer</option><option>Cheque</option></select></div>
                                 <div class="form-group"><label>Reference</label><input type="text" id="pay-ref" placeholder="Optional"></div>
@@ -15238,137 +14055,189 @@
                             </div>
                         </div>
 
+                        <div style="text-align:right;font-weight:700;font-size:1.1rem;margin-bottom:10px">
+                            Grand Total: <span id="pay-grand-total" style="color:var(--role-primary)">RWF 0</span>
+                        </div>
                         <div class="btn-group" style="justify-content:flex-end">
-                            <button class="btn btn-success" onclick="submitRecordPayment()">✅ Record Payment</button>
+                            <button class="btn btn-success" onclick="submitRecordPayment()">✅ Record Payment(s)</button>
                         </div>
                     </div>
                 </div>
             `;
 
-            window.loadStudentPaymentDetails = function () {
-                const studentId = document.getElementById('pay-student')?.value;
-                if (!studentId) {
-                    document.getElementById('record-fee-tbody').innerHTML =
-                        '<tr><td colspan="4" style="text-align:center;padding:40px">Select a student to view fees</td></tr>';
-                    document.getElementById('pay-student-class').value = '';
-                    return;
-                }
+            window.renderPayStudentList(students);
+            if (preselId) window.payToggleStudent(parseInt(preselId), true);
+        }
 
+        window.renderPayStudentList = function (students) {
+            const list = document.getElementById('pay-student-list');
+            if (!list) return;
+            if (students.length === 0) {
+                list.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:16px">No students match your search</p>';
+                return;
+            }
+            list.innerHTML = students.map(s => `
+                <label style="display:grid;grid-template-columns:24px 1fr;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;text-align:left" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                    <input type="checkbox" style="justify-self:start" value="${s.id}" ${window._paySelected.has(s.id) ? 'checked' : ''} onchange="window.payToggleStudent(${s.id}, this.checked)">
+                    <span>${esc(s.first_name)} ${esc(s.last_name)} <small style="color:var(--text-muted)">(${esc(s.student_code || '')})</small></span>
+                </label>`).join('');
+        };
+        window.filterPayStudents = function (query) {
+            const q = query.trim().toLowerCase();
+            const filtered = !q ? window._payAllStudents : window._payAllStudents.filter(s =>
+                `${s.first_name} ${s.last_name} ${s.student_code || ''}`.toLowerCase().includes(q)
+            );
+            window.renderPayStudentList(filtered);
+        };
+        window.paySelectAllVisible = function () {
+            document.querySelectorAll('#pay-student-list input[type=checkbox]').forEach(cb => {
+                cb.checked = true;
+                window.payToggleStudent(parseInt(cb.value), true);
+            });
+        };
+        window.payClearSelection = function () {
+            window._paySelected.clear();
+            window._payAllocations.clear();
+            document.querySelectorAll('#pay-student-list input[type=checkbox]').forEach(cb => cb.checked = false);
+            window.renderPayFeeSections();
+        };
+        window.payToggleStudent = function (id, checked) {
+            if (checked) window._paySelected.add(id); else {
+                window._paySelected.delete(id);
+                // drop any typed amounts for this student
+                for (const key of [...window._payAllocations.keys()]) {
+                    if (key.startsWith(id + ':')) window._payAllocations.delete(key);
+                }
+            }
+            const c = document.getElementById('pay-selected-count');
+            if (c) c.textContent = `${window._paySelected.size} selected`;
+            window.renderPayFeeSections();
+        };
+
+        window.renderPayFeeSections = function () {
+            const yearId = getCurrentYearId();
+            const container = document.getElementById('pay-fee-sections');
+            if (!container) return;
+            const ids = [...window._paySelected];
+            if (ids.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px">Select one or more students above to see their fees</p>';
+                window.updatePayGrandTotal();
+                return;
+            }
+            container.innerHTML = ids.map(studentId => {
                 const student = getStudentById(studentId);
                 const cls = student ? getClassById(student.class_id) : null;
-                document.getElementById('pay-student-class').value = cls?.name || '—';
-
                 const fees = state.studentFees.filter(f => f.student_id == studentId && !f.is_waived && !f.is_credit &&
                     f.academic_year_id === yearId);
-                const tbody = document.getElementById('record-fee-tbody');
                 if (fees.length === 0) {
-                    tbody.innerHTML =
-                        '<tr><td colspan="4" style="text-align:center;padding:40px">No pending fees for this student</td></tr>';
-                    return;
+                    return `<div class="dash-card" style="margin-bottom:14px">
+                        <div class="dash-card-header"><strong>${esc(student?.first_name)} ${esc(student?.last_name)}</strong> — ${esc(cls?.name || '—')}</div>
+                        <div style="padding:16px;text-align:center;color:var(--text-muted)">No pending fees</div></div>`;
                 }
-
-                let totalRemaining = 0;
-                tbody.innerHTML = fees.map(fee => {
+                const rows = fees.map(fee => {
                     const cat = state.feeCategories.find(c => c.id === fee.fee_category_id);
                     const paid = fee.paid_amount || 0;
                     const remaining = fee.amount - paid;
-                    totalRemaining += remaining;
+                    const key = `${studentId}:${fee.id}`;
+                    const typed = window._payAllocations.get(key) || '';
                     return `<tr>
-                        <td><strong>${esc(cat?.name || 'Unknown')}</strong></td>
+                        <td>${esc(cat?.name || 'Unknown')}</td>
                         <td style="text-align:right">${fmtCurrency(fee.amount)}</td>
                         <td style="text-align:right">${fmtCurrency(paid)}</td>
                         <td style="text-align:right;font-weight:600">${fmtCurrency(remaining)}</td>
+                        <td style="text-align:center">
+                            <input type="number" min="0" max="${remaining}" step="100" placeholder="0" value="${typed}"
+                                style="width:110px;text-align:right;padding:5px 8px;border:1px solid var(--border-medium);border-radius:6px"
+                                oninput="window.updatePayAllocation('${key}', this.value, ${remaining})">
+                            <button class="btn btn-sm btn-outline" style="padding:3px 6px" onclick="window.paySetFull('${key}', ${remaining})">Full</button>
+                        </td>
                     </tr>`;
                 }).join('');
-
-                document.getElementById('record-fee-total').innerHTML =
-                    `<tr><td colspan="3" style="font-weight:700">TOTAL REMAINING</td><td style="text-align:right;font-weight:700;color:var(--role-primary)">${fmtCurrency(totalRemaining)}</td></tr>`;
-            };
-
-            if (preselId) setTimeout(() => {
-                if (window.loadStudentPaymentDetails) window
-                    .loadStudentPaymentDetails();
-            }, 100);
-        }
+                return `<div class="dash-card" style="margin-bottom:14px">
+                    <div class="dash-card-header"><strong>${esc(student?.first_name)} ${esc(student?.last_name)}</strong> — ${esc(cls?.name || '—')} <small style="color:var(--text-muted)">(${esc(student?.student_code || '')})</small></div>
+                    <div class="table-wrapper"><table class="data-table" style="width:100%">
+                        <thead><tr><th>Fee</th><th style="text-align:right">Amount</th><th style="text-align:right">Paid</th><th style="text-align:right">Remaining</th><th style="text-align:center">Pay Now</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table></div>
+                </div>`;
+            }).join('');
+            window.updatePayGrandTotal();
+        };
+        window.updatePayAllocation = function (key, value, remaining) {
+            let amt = parseFloat(value);
+            if (isNaN(amt) || amt <= 0) window._payAllocations.delete(key);
+            else window._payAllocations.set(key, Math.min(amt, remaining));
+            window.updatePayGrandTotal();
+        };
+        window.paySetFull = function (key, remaining) {
+            window._payAllocations.set(key, remaining);
+            window.renderPayFeeSections();
+        };
+        window.updatePayGrandTotal = function () {
+            let total = 0;
+            for (const amt of window._payAllocations.values()) total += amt;
+            const el = document.getElementById('pay-grand-total');
+            if (el) el.textContent = fmtCurrency(total);
+        };
 
         // ==================================================================================
         // SUBMIT RECORD PAYMENT
         // ==================================================================================
 
         async function submitRecordPayment() {
-            const studentId = document.getElementById('pay-student')?.value;
-            const amount = parseFloat(document.getElementById('pay-amount')?.value);
             const date = document.getElementById('pay-date')?.value;
             const method = document.getElementById('pay-method')?.value;
             const ref = document.getElementById('pay-ref')?.value || null;
             const notes = document.getElementById('pay-notes')?.value || null;
             const yearId = getCurrentYearId();
 
-            if (!studentId) { showToast('Please select a student', 'warning'); return; }
             if (!date) { showToast('Please select a payment date', 'warning'); return; }
-            if (isNaN(amount) || amount <= 0) { showToast('Please enter a valid amount', 'warning'); return; }
 
-            const student = getStudentById(studentId);
-            const receiptNum =
-                `RCP-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(state.payments.length + 1).padStart(4, '0')}`;
-
-            const payment = await insert('payments', {
-                student_id: parseInt(studentId),
-                amount: amount,
-                payment_date: date,
-                payment_method: method,
-                receipt_number: receiptNum,
-                reference: ref,
-                notes: notes,
-                academic_year_id: yearId,
-                recorded_by: state.currentUser?.id || null,
-                created_at: new Date().toISOString()
-            });
-
-            if (!payment) { showToast('Failed to record payment', 'error'); return; }
-
-            let remainingAmount = amount;
-            const fees = state.studentFees.filter(f =>
-                f.student_id == studentId && !f.is_paid && !f.is_waived && !f.is_credit &&
-                f.academic_year_id === yearId
-            ).sort((a, b) => new Date(a.due_date || 0) - new Date(b.due_date || 0));
-
-            for (const fee of fees) {
-                if (remainingAmount <= 0) break;
-                const feeRemaining = fee.amount - (fee.paid_amount || 0);
-                const allocation = Math.min(remainingAmount, feeRemaining);
-                if (allocation > 0) {
-                    await update('student_fees', fee.id, {
-                        paid_amount: (fee.paid_amount || 0) + allocation,
-                        is_paid: (fee.paid_amount || 0) + allocation >= fee.amount,
-                        updated_at: new Date().toISOString()
-                    });
-                    remainingAmount -= allocation;
-                }
+            // Group typed amounts by student
+            const byStudent = new Map();
+            for (const [key, amt] of window._payAllocations.entries()) {
+                if (amt <= 0) continue;
+                const [studentId, feeId] = key.split(':').map(Number);
+                if (!byStudent.has(studentId)) byStudent.set(studentId, []);
+                byStudent.get(studentId).push({ feeId, amt });
             }
+            if (byStudent.size === 0) { showToast('Enter an amount for at least one fee', 'warning'); return; }
 
-            if (remainingAmount > 0) {
-                await insert('student_fees', {
-                    student_id: parseInt(studentId),
-                    fee_category_id: null,
-                    term_id: state.currentTerm?.id,
-                    academic_year_id: yearId,
-                    amount: 0,
-                    paid_amount: remainingAmount,
-                    is_paid: false,
-                    is_waived: false,
-                    is_credit: true,
-                    credit_amount: remainingAmount,
-                    notes: `Overpayment credit from receipt ${receiptNum}`,
+            let recordedCount = 0, grandTotal = 0;
+            for (const [studentId, allocations] of byStudent.entries()) {
+                const amount = allocations.reduce((a, x) => a + x.amt, 0);
+                if (amount <= 0) continue;
+
+                const receiptNum = `RCP-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(state.payments.length + 1 + recordedCount).padStart(4, '0')}`;
+                const payment = await insert('payments', {
+                    student_id: studentId, amount: amount, payment_date: date,
+                    payment_method: method, receipt_number: receiptNum, reference: ref, notes: notes,
+                    academic_year_id: yearId, recorded_by: state.currentUser?.id || null,
                     created_at: new Date().toISOString()
                 });
-                showToast(`⚠️ ${fmtCurrency(remainingAmount)} credit created`, 'warning');
+                if (!payment) continue;
+
+                for (const { feeId, amt } of allocations) {
+                    const fee = state.studentFees.find(f => f.id === feeId);
+                    if (!fee) continue;
+                    const feeRemaining = fee.amount - (fee.paid_amount || 0);
+                    const allocation = Math.min(amt, feeRemaining);
+                    if (allocation > 0) {
+                        await update('student_fees', fee.id, {
+                            paid_amount: (fee.paid_amount || 0) + allocation,
+                            is_paid: (fee.paid_amount || 0) + allocation >= fee.amount,
+                            updated_at: new Date().toISOString()
+                        });
+                    }
+                }
+                recordedCount++;
+                grandTotal += amount;
             }
 
             await refreshTable('payments');
             await refreshTable('student_fees');
 
-            showToast(`✅ Payment of ${fmtCurrency(amount)} recorded (${receiptNum})`, 'success');
+            showToast(`✅ ${recordedCount} payment(s) recorded, total ${fmtCurrency(grandTotal)}`, 'success');
             navigateTo('payment-history');
         }
 
@@ -15757,7 +14626,7 @@
             const yearId = getCurrentYearId();
             const isHoliday = isHolidayMode();
 
-            const students = isHoliday ? getCurrentStudents() : state.students.filter(s => s.status === 'Active');
+            const students = state.students.filter(s => s.status === 'Active') /* finance: never restrict to holiday-enrolled */;
             const studentFees = isHoliday ? state.studentFees : state.studentFees.filter(f => f.academic_year_id === yearId);
 
             const overdueList = [];
@@ -16027,6 +14896,31 @@
         // 41. renderSubjects
         async function renderSubjects(el) {
             await ensureStateLoaded();
+
+            if (isHolidayMode()) {
+                const holidayClasses = state.sessionClasses || [];
+                el.innerHTML = `
+                    <div class="dash-card">
+                        <div class="dash-card-header">
+                            <span class="dash-card-title">📖 Subjects</span>
+                            <span class="badge badge-info">🏖️ Holiday Session</span>
+                        </div>
+                        <div class="dash-card-body">
+                            <div class="alert alert-info">Holiday classes use their own subject list, set up separately from the regular Nursery/Primary subjects shown during term time.</div>
+                            ${holidayClasses.map(cls => {
+                    const subs = (state.sessionSubjects || []).filter(s => s.session_class_id == cls.id);
+                    return `<div class="dash-card" style="margin-bottom:14px">
+                                    <div class="dash-card-header"><strong>${esc(cls.name)}</strong>${cls.is_free ? ' <span class="badge badge-success">FREE</span>' : ''}</div>
+                                    <div style="padding:14px">
+                                        ${subs.length ? subs.map(s => `<span class="badge badge-info" style="margin:0 6px 6px 0">${esc(s.name)}</span>`).join('') : '<span style="color:var(--text-muted)">No subjects configured for this class</span>'}
+                                    </div>
+                                </div>`;
+                }).join('')}
+                        </div>
+                    </div>`;
+                return;
+            }
+
             const nurserySubjects = state.subjects.filter(s => s.level === 'Nursery');
             const primarySubjects = state.subjects.filter(s => s.level === 'Primary');
 
@@ -16198,7 +15092,7 @@
 
             let assignments = isHoliday ?
                 (state.sessionTeacherAssignments || []) :
-                await getAll('teacher_assignments');
+                await getAll('teacher_assignments', { academic_year_id: getCurrentYearId() });
 
             const teacherMap = new Map();
             assignments.forEach(a => {
@@ -16316,7 +15210,9 @@
         async function editTeacherAssignments(teacherId) {
             const isHoliday = isHolidayMode();
             const table = isHoliday ? 'session_teacher_assignments' : 'teacher_assignments';
-            const existing = await getAll(table, { teacher_id: teacherId });
+            const existing = isHoliday
+                ? await getAll(table, { teacher_id: teacherId })
+                : await getAll(table, { teacher_id: teacherId, academic_year_id: getCurrentYearId() });
 
             const existingSet = new Set(existing.map(a => isHoliday ?
                 `${a.session_class_id}|${a.session_subject_id}` :
@@ -16374,7 +15270,14 @@
                 });
             });
 
-            await removeWhere(table, `teacher_id=eq.${teacherId}`);
+            if (isHoliday) {
+                await removeWhere(table, `teacher_id=eq.${teacherId}`);
+            } else {
+                // Only clear THIS teacher's assignments for the CURRENT year — leave other
+                // years' assignment history untouched.
+                const toRemove = await getAll(table, { teacher_id: teacherId, academic_year_id: getCurrentYearId() });
+                for (const rec of toRemove) await remove(table, rec.id);
+            }
 
             for (const s of selected) {
                 const data = isHoliday ?
@@ -17848,9 +16751,9 @@
                 academic_year: state.currentAcadYear?.name,
                 totals: {
                     total_fees: state.studentFees.filter(f => f.term_id === currentTerm?.id && !f.is_waived && !f
-                        .is_credit).reduce((s, f) => s + f.amount, 0),
+                        .is_credit && f.is_approved !== false).reduce((s, f) => s + f.amount, 0),
                     total_collected: state.studentFees.filter(f => f.term_id === currentTerm?.id && !f.is_waived && !f
-                        .is_credit).reduce((s, f) => s + (f.paid_amount || 0), 0),
+                        .is_credit && f.is_approved !== false).reduce((s, f) => s + (f.paid_amount || 0), 0),
                     total_waived: state.studentFees.filter(f => f.term_id === currentTerm?.id && f.is_waived).reduce((s,
                         f) => s + f.amount, 0)
                 },
@@ -17864,7 +16767,8 @@
                             f.student_id === student.id &&
                             f.term_id === currentTerm?.id &&
                             !f.is_waived &&
-                            !f.is_credit
+                            !f.is_credit &&
+                            f.is_approved !== false
                         );
                         expected += fees.reduce((s, f) => s + f.amount, 0);
                         collected += fees.reduce((s, f) => s + (f.paid_amount || 0), 0);
@@ -17887,9 +16791,10 @@
             const isHoliday = isHolidayMode();
 
             const payments = isHoliday ? state.payments : state.payments.filter(p => p.academic_year_id === yearId);
-            const feeAmounts = isHoliday ? state.feeAmounts : state.feeAmounts.filter(f => f.academic_year_id === yearId);
+            const studentFees = isHoliday ? state.studentFees : state.studentFees.filter(f => f.academic_year_id === yearId);
+            const approvedFees = studentFees.filter(f => f.is_approved !== false && !f.is_waived && !f.is_credit);
 
-            const totalFees = feeAmounts.reduce((a, f) => a + f.amount, 0);
+            const totalFees = approvedFees.reduce((a, f) => a + f.amount, 0);
             const totalPaid = payments.reduce((a, p) => a + p.amount, 0);
 
             const exportData = [{
@@ -18120,7 +17025,7 @@
         }
 
         async function openEditTimetableSlot(slotId) {
-            const slot = (await getAll('timetable_slots')).find(s => s.id == slotId);
+            const slot = (await getAll('timetable_slots', { academic_year_id: getCurrentYearId() })).find(s => s.id == slotId);
             if (!slot) return;
 
             const classOpts = state.classes.filter(c => c.is_active !== false).map(c =>
@@ -18186,6 +17091,7 @@
                 } else {
                     await insert('timetable_slots', {
                         day, time_slot, class_id, subject_id, teacher_id, room, notes,
+                        academic_year_id: getCurrentYearId(),
                         created_at: new Date().toISOString()
                     });
                     await logActivity(user.id, user.role, 'Added timetable slot', 'timetable');
@@ -18292,7 +17198,7 @@
             container.innerHTML = `<div class="loading-container"><div class="spinner"></div><p>Loading timetable...</p></div>`;
 
             try {
-                let slots = await getAll('timetable_slots');
+                let slots = await getAll('timetable_slots', { academic_year_id: getCurrentYearId() });
 
                 const dayOrder = { 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5 };
                 const timeOrder = {};
@@ -18555,7 +17461,7 @@
         }
 
         async function runTimetableConflictCheck() {
-            const slots = await getAll('timetable_slots').catch(() => []);
+            const slots = await getAll('timetable_slots', { academic_year_id: getCurrentYearId() }).catch(() => []);
             const map = {};
             slots.forEach(s => {
                 if (!s.teacher_id) return;
@@ -18586,8 +17492,8 @@
             const SLOTS = ['07:00-07:45', '07:45-08:30', '08:30-09:15', '09:15-10:00', '10:30-11:15', '11:15-12:00',
                 '14:00-14:45', '14:45-15:30'
             ];
-            const assignments = await getAll('teacher_assignments').catch(() => []);
-            const existing = await getAll('timetable_slots').catch(() => []);
+            const assignments = await getAll('teacher_assignments', { academic_year_id: getCurrentYearId() }).catch(() => []);
+            const existing = await getAll('timetable_slots', { academic_year_id: getCurrentYearId() }).catch(() => []);
             const classes = cf ? (state.classes || []).filter(c => c.id == cf) : (state.classes || []).filter(c => c
                 .is_active !== false);
             let created = 0,
@@ -18613,7 +17519,8 @@
                         if (classBusy) { ti++; continue; }
                         const ns = {
                             day, time_slot: slot, class_id: cls.id, subject_id: asgn.subject_id,
-                            teacher_id: asgn.teacher_id, room: '', created_at: new Date().toISOString()
+                            teacher_id: asgn.teacher_id, room: '', academic_year_id: getCurrentYearId(),
+                            created_at: new Date().toISOString()
                         };
                         if (!dry) {
                             try {
@@ -18992,6 +17899,552 @@
 
         console.log('✅ ECOLE LA FONTAINE v7.0 — Complete Implementation');
         console.log('📊 All modules, all functions, all themes — fully integrated.');
+
+        // ==================================================================================
+        // PORTED FUNCTIONS — previously referenced by buttons but not defined (broken handlers)
+        // ==================================================================================
+        async function deleteAssessmentWithAllMarks(assessmentId, assessmentName) {
+            if (!await confirmDialog(`⚠️ Delete "${assessmentName}"? This will delete ALL marks. Cannot undo!`)) return;
+
+            const marksToDelete = state.marks.filter(m => m.assessment_id == assessmentId);
+            for (const m of marksToDelete) await remove('marks', m.id);
+            await remove('assessments', assessmentId);
+            await refreshTable('assessments');
+            await refreshTable('marks');
+            showToast(`✅ Assessment "${assessmentName}" deleted`, 'success');
+            loadMarksDatabase();
+        }
+
+        async function editClass(classId) {
+            const cls = state.classes.find(c => c.id === classId);
+            if (!cls) return;
+
+            showModal(`
+        <div class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>✏️ Edit Class: ${esc(cls.name)}</h3>
+                    <button class="modal-close" onclick="closeModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group"><label>Class Name</label><input type="text" id="edit-class-name" value="${esc(cls.name)}"></div>
+                        <div class="form-group"><label>Class Code</label><input type="text" id="edit-class-code" value="${esc(cls.code || '')}"></div>
+                        <div class="form-group"><label>Level</label>
+                            <select id="edit-class-level">
+                                <option value="Nursery" ${cls.level === 'Nursery' ? 'selected' : ''}>Nursery</option>
+                                <option value="Primary" ${cls.level === 'Primary' ? 'selected' : ''}>Primary</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Capacity</label><input type="number" id="edit-class-capacity" value="${cls.capacity || 40}"></div>
+                        <div class="form-group"><label>Sort Order</label><input type="number" id="edit-class-order" value="${cls.sort_order || 0}"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="updateClass(${classId})">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    `);
+        }
+
+        async function exportFeeAmounts() {
+            const yearId = parseInt(document.getElementById('fa-year')?.value);
+            if (!yearId) {
+                showToast('Please select an academic year first', 'warning');
+                return;
+            }
+
+            const classFilter = document.getElementById('fa-class-filter')?.value;
+            const categoryFilter = document.getElementById('fa-category-filter')?.value;
+
+            // Get filtered amounts
+            let amounts = state.feeAmounts.filter(f => f.academic_year_id === yearId);
+
+            if (classFilter) {
+                amounts = amounts.filter(f => f.class_id == classFilter);
+            }
+            if (categoryFilter) {
+                amounts = amounts.filter(f => f.fee_category_id == categoryFilter);
+            }
+
+            if (amounts.length === 0) {
+                showToast('No data to export', 'warning');
+                return;
+            }
+
+            const exportData = amounts.map(amount => {
+                const cls = getClassById(amount.class_id);
+                const cat = state.feeCategories.find(c => c.id === amount.fee_category_id);
+                const studentsInClass = state.students.filter(s => s.class_id === amount.class_id && s.status === 'Active').length;
+
+                // Calculate outstanding for this fee
+                const studentFeesForThis = state.studentFees.filter(f =>
+                    f.fee_category_id === amount.fee_category_id &&
+                    f.term_id === state.currentTerm?.id &&
+                    !f.is_waived
+                );
+                const studentIdsInClass = state.students.filter(s => s.class_id === amount.class_id).map(s => s.id);
+                const outstanding = studentFeesForThis
+                    .filter(f => studentIdsInClass.includes(f.student_id))
+                    .reduce((sum, f) => sum + (f.amount - (f.paid_amount || 0)), 0);
+
+                return {
+                    'Class': cls?.name || '—',
+                    'Fee Category': cat?.name || '—',
+                    'Amount (RWF)': amount.amount,
+                    'Reset Frequency': cat?.reset_frequency || 'one_time',
+                    'Students in Class': studentsInClass,
+                    'Outstanding Balance (RWF)': outstanding,
+                    'Academic Year': state.academicYears.find(y => y.id === yearId)?.name || '—'
+                };
+            });
+
+            exportToExcel(exportData, `Fee_Amounts_${new Date().toISOString().split('T')[0]}`);
+            showToast(`✅ Exported ${exportData.length} fee amount records`, 'success');
+        }
+
+        function exportStaffTimetable() {
+            const table = document.getElementById('staff-timetable-table');
+            if (!table) { showToast('No data to export', 'warning'); return; }
+
+            const rows = [];
+            table.querySelectorAll('tr').forEach(tr => {
+                rows.push(Array.from(tr.querySelectorAll('th,td')).map(td => td.innerText.replace(/[\n\r]+/g, ' ').trim()));
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Staff Timetable');
+            XLSX.writeFile(wb, `StaffTimetable_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast('✅ Staff timetable exported', 'success');
+        }
+
+        function exportStudentsData() {
+            const data = state.students.map(s => ({
+                'Code': s.student_code || '',
+                'First Name': s.first_name,
+                'Last Name': s.last_name,
+                'Class': getClassById(s.class_id)?.name || '',
+                'Gender': s.gender || '',
+                'Status': s.status,
+                'Guardian': s.guardian_name || '',
+                'Guardian Phone': s.guardian_phone || '',
+                'Enrolled': fmtDate(s.enrollment_date),
+            }));
+            exportToExcel(data, 'Students_Export');
+        }
+
+        async function loadStaffTimetableData() {
+            const wrap = document.getElementById('staff-timetable-wrap');
+            if (!wrap) return;
+
+            const teacherIdFilter = document.getElementById('stt-teacher-filter')?.value;
+            const days = TIMETABLE_DAYS;
+            const timeSlots = TIMETABLE_TIME_SLOTS;
+
+            wrap.innerHTML = `<div class="loading-container"><div class="spinner"></div></div>`;
+
+            try {
+                let slots = await getAll('timetable_slots', { academic_year_id: getCurrentYearId() });
+                const teachers = state.teachers.filter(t => t.role === 'teacher');
+                const displayTeachers = teacherIdFilter ? teachers.filter(t => String(t.id) === String(teacherIdFilter)) : teachers;
+
+                if (displayTeachers.length === 0) {
+                    wrap.innerHTML = `<div class="alert alert-info" style="margin:16px">No teachers found.</div>`;
+                    return;
+                }
+
+                const idx = {};
+                for (const s of slots) {
+                    if (!idx[s.teacher_id]) idx[s.teacher_id] = {};
+                    if (!idx[s.teacher_id][s.day]) idx[s.teacher_id][s.day] = {};
+                    if (!idx[s.teacher_id][s.day][s.time_slot]) idx[s.teacher_id][s.day][s.time_slot] = [];
+                    idx[s.teacher_id][s.day][s.time_slot].push(s);
+                }
+
+                let html = `<table class="data-table" id="staff-timetable-table" style="min-width:800px;font-size:11px">
+                    <thead>
+                        <tr style="background:var(--bg-tertiary)">
+                            <th style="min-width:90px">Teacher / Time</th>
+                            ${days.map(d => `<th style="min-width:130px">${d}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+                for (const teacher of displayTeachers) {
+                    const teacherSlots = idx[teacher.id] || {};
+
+                    html += `<tr style="background:var(--bg-tertiary)">
+                        <td colspan="${days.length + 1}" style="font-weight:700;padding:8px 12px;border-top:2px solid var(--border-medium)">
+                            👤 ${esc(teacher.name)} ${teacher.department ? `<span style="font-weight:400;color:var(--text-muted)">(${esc(teacher.department)})</span>` : ''}
+                        </td>
+                    </tr>`;
+
+                    for (const ts of timeSlots) {
+                        const breakIcon = getBreakIcon(ts);
+                        const isBreak = isBreakSlot(ts);
+
+                        html += `<tr style="${isBreak ? 'background:var(--bg-tertiary)' : ''}">
+                            <td style="font-size:11px;font-weight:600;white-space:nowrap;padding:4px 8px">
+                                ${ts}${breakIcon ? ` ${breakIcon}` : ''}
+                                ${isBreak ? '<br><span style="font-size:9px;">BREAK</span>' : ''}
+                            </td>`;
+
+                        for (const day of days) {
+                            const daySlots = teacherSlots[day]?.[ts] || [];
+
+                            if (daySlots.length === 0) {
+                                html += `<td style="text-align:center;color:var(--text-muted);${isBreak ? 'font-style:italic' : ''}">
+                                    ${isBreak ? (ts === '10:20-10:40' ? '🍎' : ts === '12:00-13:00' ? '🍽️' : '☕') : '—'}
+                                </tr>`;
+                            } else {
+                                html += `<td style="padding:2px 4px">`;
+                                for (const sl of daySlots) {
+                                    const cls = state.classes.find(c => c.id == sl.class_id);
+                                    const subj = state.subjects.find(s => s.id == sl.subject_id);
+                                    html += `<div style="background:var(--role-light,var(--info-bg));border-radius:var(--r-sm);padding:3px 6px;margin:2px 0;border-left:3px solid var(--role-primary,var(--info))">
+                                        <div style="font-weight:600;font-size:10px">${esc(subj?.name || '?')}</div>
+                                        <div style="color:var(--text-muted);font-size:9px">${esc(cls?.name || '?')}</div>
+                                        ${sl.room ? `<div style="color:var(--text-muted);font-size:8px">📍 ${esc(sl.room)}</div>` : ''}
+                                    </div>`;
+                                }
+                                html += `<td>`;
+                            }
+                        }
+                        html += `</tr>`;
+                    }
+                }
+
+                html += `</tbody></table>`;
+
+                const assignedSlots = slots.length;
+                const busyTeachers = new Set(slots.map(s => s.teacher_id)).size;
+                const summaryHtml = `<div style="display:flex;gap:16px;padding:12px 16px;background:var(--bg-tertiary);border-bottom:1px solid var(--border-light);font-size:13px">
+                    <span>👩‍🏫 <strong>${displayTeachers.length}</strong> teachers shown</span>
+                    <span>📅 <strong>${assignedSlots}</strong> total slots</span>
+                    <span>✅ <strong>${busyTeachers}</strong> teachers assigned</span>
+                </div>`;
+
+                wrap.innerHTML = summaryHtml + html;
+            } catch (e) {
+                console.error('[StaffTimetable]', e);
+                wrap.innerHTML = `<div class="alert alert-danger" style="margin:16px">⚠️ Could not load staff timetable: ${esc(e.message)}</div>`;
+            }
+        }
+
+        function openAddFeeCategory() {
+            const yearId = state.currentAcadYear?.id || state.academicYears[0]?.id;
+            const activeCount = state.students.filter(s => s.status === 'Active').length;
+
+            showModal(`
+        <div class="modal-overlay" id="add-fee-modal">
+            <div class="modal" onclick="event.stopPropagation()" style="max-width: 550px;">
+                <div class="modal-header">
+                    <h3>➕ Add Fee Category</h3>
+                    <button class="modal-close" onclick="closeModal('add-fee-modal')">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Category Name *</label>
+                            <input type="text" id="fc-name" placeholder="e.g. School Fees" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Fee Type</label>
+                            <select id="fc-type" class="form-control">
+                                <option value="Tuition">Tuition</option>
+                                <option value="Activity">Activity</option>
+                                <option value="Transport">Transport</option>
+                                <option value="Meals">Meals</option>
+                                <option value="Uniform">Uniform</option>
+                                <option value="Supplies">Supplies</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <input type="text" id="fc-desc" placeholder="Optional description" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Default Amount (RWF)</label>
+                            <input type="number" id="fc-amount" placeholder="e.g. 150000" min="0" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Apply To</label>
+                            <select id="fc-apply" class="form-control">
+                                <option value="all">All Active Students (${activeCount} students)</option>
+                                <option value="none">None yet — add amounts manually</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Reset Frequency</label>
+                            <select id="fc-freq" class="form-control">
+                                <option value="one_time">One-time</option>
+                                <option value="termly">Termly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="annual">Annual</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning" style="margin-top:12px; font-size:.8rem">
+                        ⚠️ When saved, this fee will be automatically applied to all active students.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" onclick="closeModal('add-fee-modal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitAddFeeCategory()">✅ Save & Apply</button>
+                </div>
+            </div>
+        </div>
+    `);
+        }
+
+        async function openEditStudentModal(id) {
+            const s = getStudentById(id);
+            if (!s) return;
+
+            showModal(`
+        <div class="modal-overlay">
+            <div class="modal modal-lg">
+                <div class="modal-header">
+                    <h3>✏️ Edit Student — ${esc(s.first_name + ' ' + s.last_name)}</h3>
+                    <button class="modal-close" onclick="closeModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div id="edit-stud-err" class="alert alert-danger" style="display:none"></div>
+                    <div class="form-grid">
+                        <div class="form-group"><label>First Name *</label><input type="text" id="es-first" value="${esc(s.first_name)}"></div>
+                        <div class="form-group"><label>Last Name *</label><input type="text" id="es-last" value="${esc(s.last_name)}"></div>
+                        <div class="form-group"><label>Class *</label>
+                            <select id="es-class">${state.classes.map(c => `<option value="${c.id}" ${c.id === s.class_id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+                        </div>
+                        <div class="form-group"><label>Gender</label>
+                            <select id="es-gender"><option ${s.gender === 'Male' ? 'selected' : ''}>Male</option><option ${s.gender === 'Female' ? 'selected' : ''}>Female</option></select>
+                        </div>
+                        <div class="form-group"><label>Date of Birth</label><input type="date" id="es-dob" value="${s.date_of_birth || ''}"></div>
+                        <div class="form-group"><label>Status</label>
+                            <select id="es-status">${['Active', 'Inactive', 'Transferred', 'Graduated'].map(st => `<option ${s.status === st ? 'selected' : ''}>${st}</option>`).join('')}</select>
+                        </div>
+                        <div class="form-group"><label>Guardian Name</label><input type="text" id="es-guardian" value="${esc(s.guardian_name || '')}"></div>
+                        <div class="form-group"><label>Guardian Phone</label><input type="tel" id="es-phone" value="${esc(s.guardian_phone || '')}"></div>
+                        <div class="form-group full"><label>Notes</label><textarea id="es-notes">${esc(s.notes || '')}</textarea></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="submitEditStudent(${id})">💾 Save Changes</button>
+                </div>
+            </div>
+        </div>
+    `);
+        }
+
+        function printStaffTimetable() {
+            const wrap = document.getElementById('staff-timetable-wrap');
+            if (!wrap) return;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Staff Timetable - ECOLE LA FONTAINE</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; font-size: 11px; }
+                        h2 { text-align: center; margin-bottom: 16px; }
+                        table { border-collapse: collapse; width: 100%; }
+                        th, td { border: 1px solid #ccc; padding: 4px 6px; }
+                        th { background: #f0f0f0; font-weight: 700; }
+                        @media print { body { padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <h2>ECOLE LA FONTAINE — Staff Timetable</h2>
+                    <p style="text-align:center; margin-bottom:16px;">Generated on ${new Date().toLocaleDateString()}</p>
+                    ${wrap.innerHTML}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        window.switchStudentTab = async function (tabName, studentId, event) {
+            _activeStudentTab = tabName;
+
+            // Update tab button styles
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.borderBottom = 'none';
+                btn.style.color = 'var(--text-muted)';
+            });
+            event.target.classList.add('active');
+            event.target.style.borderBottom = '2px solid var(--role-primary)';
+            event.target.style.color = 'var(--role-primary)';
+
+            await loadStudentTabContent(tabName, studentId);
+        };
+
+        async function toggleAssessmentLockStatus(assessmentId, currentLockState) {
+            const newState = !currentLockState;
+            if (!await confirmDialog(`${newState ? 'Lock' : 'Unlock'} this assessment?`)) return;
+
+            await update('assessments', assessmentId, { is_locked: newState });
+            await refreshTable('assessments');
+            showToast(`Assessment ${newState ? 'locked' : 'unlocked'}`, 'success');
+            loadMarksDatabase();
+        }
+
+        async function deleteStudentPrompt(id, name) { if (!await confirmDialog(`Archive student "${name}"? They will be marked as deleted but data is preserved.`)) return; await update('students', id, { is_deleted: true, status: 'Inactive' }); await refreshTable('students'); filterStudents(); showToast(`Student "${name}" archived`, 'info'); }
+
+
+
+        async function submitAddFeeCategory() {
+            const name = document.getElementById('fc-name')?.value.trim();
+            if (!name) {
+                showToast('Category name is required', 'warning');
+                return;
+            }
+
+            const amount = parseFloat(document.getElementById('fc-amount')?.value) || 0;
+            const applyTo = document.getElementById('fc-apply')?.value || 'all';
+            const freq = document.getElementById('fc-freq')?.value || 'one_time';
+            const feeType = document.getElementById('fc-type')?.value;
+            const description = document.getElementById('fc-desc')?.value || null;
+            const yearId = state.currentAcadYear?.id || state.academicYears[0]?.id;
+
+            // Create the fee category
+            const catData = {
+                name: name,
+                fee_type: feeType,
+                description: description,
+                amount: amount || null,
+                reset_frequency: freq,
+                apply_to: applyTo,
+                is_monthly: freq === 'monthly',
+                is_active: true,
+                created_at: new Date().toISOString()
+            };
+
+            const newCat = await insert('fee_categories', catData);
+            if (!newCat) {
+                showToast('Failed to create fee category', 'error');
+                return;
+            }
+
+            await refreshTable('fee_categories');
+
+            // If amount > 0 and apply_to is 'all', apply to all active students
+            if (amount > 0 && applyTo === 'all' && newCat.id) {
+                const targetStudents = state.students.filter(s => s.status === 'Active');
+                const termId = state.currentTerm?.id;
+                const dueDate = state.currentTerm?.end_date || null;
+                let applied = 0;
+                let creditUsed = 0;
+
+                for (const student of targetStudents) {
+                    try {
+                        const balance = getFullStudentBalance(student.id);
+                        let amountToAdd = amount;
+                        let usedCredit = 0;
+
+                        if (balance.hasCredit && balance.credit > 0) {
+                            usedCredit = Math.min(balance.credit, amount);
+                            amountToAdd = amount - usedCredit;
+                            creditUsed += usedCredit;
+                        }
+
+                        if (amountToAdd > 0) {
+                            await insert('student_fees', {
+                                student_id: student.id,
+                                fee_category_id: newCat.id,
+                                term_id: termId,
+                                academic_year_id: yearId,
+                                amount: amountToAdd,
+                                paid_amount: usedCredit,
+                                is_paid: amountToAdd === 0,
+                                is_waived: false,
+                                due_date: dueDate,
+                                created_at: new Date().toISOString()
+                            });
+                            applied++;
+                        } else if (usedCredit > 0) {
+                            // Fee fully covered by credit
+                            applied++;
+                        }
+                    } catch (e) {
+                        console.warn('Fee application error:', e);
+                    }
+                }
+
+                await refreshTable('student_fees');
+                const creditMsg = creditUsed > 0 ? ` (${fmtCurrency(creditUsed)} credit used)` : '';
+                showToast(`✅ Fee "${name}" added and applied to ${applied} students${creditMsg}`, 'success');
+            } else {
+                showToast(`✅ Fee category "${name}" added`, 'success');
+            }
+
+            closeModal('add-fee-modal');
+            renderFeeStructure(document.getElementById('dynamic-content'));
+        }
+
+        async function submitEditStudent(id) {
+            const get = el => document.getElementById(el)?.value.trim();
+
+            // Get old class before update
+            const oldStudent = getStudentById(id);
+            const oldClassId = oldStudent?.class_id;
+            const newClassId = parseInt(get('es-class'));
+
+            const data = {
+                first_name: get('es-first'),
+                last_name: get('es-last'),
+                class_id: newClassId,
+                gender: get('es-gender'),
+                date_of_birth: get('es-dob') || null,
+                status: get('es-status'),
+                guardian_name: get('es-guardian'),
+                guardian_phone: get('es-phone') || null,
+                notes: get('es-notes') || null,
+                updated_at: new Date().toISOString(),
+            };
+
+            const ok = await update('students', id, data);
+            if (!ok) { showToast('Update failed', 'error'); return; }
+
+            // If class changed, apply appropriate fees for new class
+            if (oldClassId != newClassId) {
+                await applyFeesToNewStudent(id, newClassId);
+                showToast(`⚠️ Student moved to new class. Applicable fees added.`, 'info');
+            }
+
+            await refreshTable('students');
+            await refreshTable('student_fees');
+            closeModal();
+            filterStudents();
+            showToast('✅ Student updated', 'success');
+        }
+
+        async function updateClass(classId) {
+            const data = {
+                name: document.getElementById('edit-class-name')?.value.trim().toUpperCase(),
+                code: document.getElementById('edit-class-code')?.value.trim().toUpperCase(),
+                level: document.getElementById('edit-class-level')?.value,
+                capacity: parseInt(document.getElementById('edit-class-capacity')?.value) || 40,
+                sort_order: parseInt(document.getElementById('edit-class-order')?.value) || 0
+            };
+
+            if (!data.name || !data.code) { showToast('Name and code required', 'warning'); return; }
+
+            await update('classes', classId, data);
+            await refreshTable('classes');
+            closeModal();
+            showToast('✅ Class updated', 'success');
+            renderClassManagement(document.getElementById('dynamic-content'));
+        }
+
     </script>
 </body>
 
