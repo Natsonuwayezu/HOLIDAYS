@@ -6810,6 +6810,30 @@
             const overallPct = totalMax > 0 ? (totalScore / totalMax) * 100 : 0;
             const overallGrade = getGrade(overallPct);
 
+            // Rank among every student enrolled in this same holiday class
+            const classmateIds = (state.sessionEnrollments || [])
+                .filter(e => e.session_class_id == classId && e.is_active !== false)
+                .map(e => e.student_id);
+            const classmatePercentages = [];
+            for (const cmId of classmateIds) {
+                const cmMarks = state.sessionMarks.filter(m => m.student_id == cmId);
+                let cmTotal = 0, cmMax = 0;
+                for (const subject of subjects) {
+                    const subAssessments = assessments.filter(a => a.session_subject_id === subject.id);
+                    for (const assessment of subAssessments) {
+                        const mark = cmMarks.find(m => m.session_assessment_id === assessment.id);
+                        if (mark && mark.score !== null && mark.score !== undefined) {
+                            cmTotal += mark.score;
+                            cmMax += assessment.max_marks || 100;
+                        }
+                    }
+                }
+                classmatePercentages.push({ id: cmId, pct: cmMax > 0 ? (cmTotal / cmMax) * 100 : 0 });
+            }
+            classmatePercentages.sort((a, b) => b.pct - a.pct);
+            const rankIndex = classmatePercentages.findIndex(c => c.id == studentId);
+            const rankDisplay = rankIndex >= 0 ? `${rankIndex + 1} of ${classmatePercentages.length}` : '—';
+
             const content = document.getElementById('hrc-content');
             const empty = document.getElementById('hrc-empty');
 
@@ -6841,7 +6865,7 @@
                         <div><div class="summary-label">TOTAL SCORE</div><div class="summary-value">${totalScore.toFixed(1)} / ${totalMax}</div></div>
                         <div><div class="summary-label">AVERAGE %</div><div class="summary-value">${overallPct.toFixed(1)}%</div></div>
                         <div><div class="summary-label">GRADE</div><div class="summary-value">${overallGrade}</div></div>
-                        <div><div class="summary-label">RANK</div><div class="summary-value">—</div></div>
+                        <div><div class="summary-label">RANK</div><div class="summary-value">${rankDisplay}</div></div>
                     </div>
                     <div class="report-footer" style="margin-top:20px;">
                         <div style="display:flex;justify-content:space-between;margin-bottom:30px;flex-wrap:wrap;gap:20px">
@@ -10766,7 +10790,7 @@
                 <input type="checkbox" class="enroll-fee-cb" value="${f.categoryId}" data-fee-id="${f.id}" data-amount="${f.amount}" checked onchange="updateEnrollFeeTotal()" style="width:16px;height:16px;flex-shrink:0">
                 <span style="flex:1;min-width:120px"><strong>${esc(f.name)}</strong></span>
                 <span style="font-size:.82rem;color:var(--text-muted);white-space:nowrap">Amount:</span>
-                <input type="number" class="enroll-fee-amount" data-fee-id="${f.id}" value="${f.amount}" min="0" max="${f.amount}" step="100" style="width:120px;padding:4px 8px;border-radius:var(--r-sm);border:1px solid var(--border-medium);text-align:right" onchange="updateEnrollFeeTotal()">
+                <input type="number" class="enroll-fee-amount" data-fee-id="${f.id}" data-original-amount="${f.amount}" value="${f.amount}" min="0" max="${f.amount}" step="100" style="width:120px;padding:4px 8px;border-radius:var(--r-sm);border:1px solid var(--border-medium);text-align:right" onchange="updateEnrollFeeTotal()">
                 <span style="font-size:.82rem;color:var(--text-muted);white-space:nowrap">/ ${fmtCurrency(f.amount)}</span>
             </div>
         `).join('');
@@ -10819,19 +10843,32 @@
             if (!guardian) return showErr('Guardian name is required');
 
             // Get selected fees with amounts — a checked fee with amount 0 still gets assigned
-            // to the student (it just isn't charging anything yet), it is NOT skipped.
+            // to the student (it just isn't charging anything yet), it is NOT skipped. If the
+            // typed amount is LESS than the fee's normal price, the difference is recorded as a
+            // waiver on that fee (e.g. registration fee 10,000 typed as 6,000 -> student is
+            // charged 6,000 and the fee shows a 4,000 waiver, not a full 10,000 balance).
             const selectedFees = [];
             document.querySelectorAll('.enroll-fee-cb:checked').forEach(cb => {
                 const feeId = cb.dataset.feeId;
                 const categoryId = cb.value;
                 const amountInput = document.querySelector(`.enroll-fee-amount[data-fee-id="${feeId}"]`);
                 const amount = parseFloat(amountInput?.value);
-                selectedFees.push({ feeId: parseInt(feeId), categoryId: parseInt(categoryId), amount: isNaN(amount) ? 0 : amount });
+                const originalAmount = parseFloat(amountInput?.dataset.originalAmount) || amount || 0;
+                selectedFees.push({
+                    feeId: parseInt(feeId), categoryId: parseInt(categoryId),
+                    amount: isNaN(amount) ? 0 : amount,
+                    originalAmount: originalAmount
+                });
             });
 
             if (selectedFees.length === 0) {
                 return showErr('Please select at least one fee to assign to this student');
             }
+
+            const enrollBtn = document.querySelector('button[onclick="submitEnrollStudent()"]');
+            const originalEnrollBtnHtml = enrollBtn?.innerHTML;
+            const setEnrollProgress = (msg) => { if (enrollBtn) { enrollBtn.disabled = true; enrollBtn.innerHTML = `<span class="spinner-sm"></span> ${msg}`; } };
+            setEnrollProgress('Saving student…');
 
             // Get payment info
             const paymentMethod = document.getElementById('en-payment-method')?.value || 'Cash';
@@ -10881,12 +10918,14 @@
                     studentData.student_code = finalCode;
                     result = await insert('students', studentData);
                 } else {
+                    if (enrollBtn) { enrollBtn.disabled = false; enrollBtn.innerHTML = originalEnrollBtnHtml; }
                     showErr('Failed to enroll student: ' + error.message);
                     return;
                 }
             }
 
             if (!result) {
+                if (enrollBtn) { enrollBtn.disabled = false; enrollBtn.innerHTML = originalEnrollBtnHtml; }
                 showErr('Failed to enroll student. Please try again.');
                 return;
             }
@@ -10922,6 +10961,8 @@
                     studentCredit.available -= appliedCredit;
                 }
 
+                const discount = Math.max(0, (fee.originalAmount || fee.amount) - fee.amount);
+
                 const feeResult = await insert('student_fees', {
                     student_id: newStudentId,
                     fee_category_id: fee.categoryId,
@@ -10932,6 +10973,8 @@
                     is_paid: amountToAdd === 0,
                     is_approved: false,
                     is_waived: false,
+                    waived_amount: discount > 0 ? discount : null,
+                    waiver_reason: discount > 0 ? `Enrollment discount (normally ${fmtCurrency(fee.originalAmount)})` : null,
                     manually_deleted: false,
                     is_template_based: true,
                     due_date: dueDate,
@@ -11007,21 +11050,30 @@
 
                 showToast(`✅ ${first} ${last} enrolled successfully (${code}) with ${fmtCurrency(totalPaid)} paid`, 'success');
 
+                // Refresh data BEFORE generating the receipt so it has real, current data
+                setEnrollProgress('Refreshing data…');
+                await refreshTable('students');
+                await refreshTable('student_fees');
+                await refreshTable('payments');
+
                 // 4. AUTO-DOWNLOAD RECEIPT (always downloads to storage)
                 if (paymentRecord) {
-                    await downloadEnrollmentReceipt(paymentRecord.id, student, feeRecords);
+                    setEnrollProgress('Generating receipt…');
+                    await downloadEnrollmentReceipt(paymentRecord, student, feeRecords);
                 }
 
             } else {
                 showToast(`✅ ${first} ${last} enrolled successfully (${code}) with no payment required`, 'success');
+                setEnrollProgress('Refreshing data…');
+                await refreshTable('students');
+                await refreshTable('student_fees');
+                await refreshTable('payments');
                 // Still generate a confirmation receipt with zero payment
+                setEnrollProgress('Generating receipt…');
                 await downloadEnrollmentConfirmation(student, feeRecords);
             }
 
-            // Refresh data
-            await refreshTable('students');
-            await refreshTable('student_fees');
-            await refreshTable('payments');
+            if (enrollBtn) { enrollBtn.disabled = false; enrollBtn.innerHTML = originalEnrollBtnHtml; }
 
             // Navigate back to student list
             navigateTo('student-list');
@@ -11029,10 +11081,41 @@
 
         // ==================================================================================
         // DOWNLOAD ENROLLMENT RECEIPT AS PDF - Auto-downloads to storage
+
+        // Reused for Record Payment too — same proven PDF pipeline, different title/filename.
+        async function downloadPaymentReceipt(payment, student, feeRecords) {
+            if (!payment) { showToast('Payment not found', 'error'); return; }
+
+            const receiptHtml = generateEnrollmentReceiptHTML(payment, student, feeRecords, '💰 PAYMENT RECEIPT');
+            try {
+                const tempDiv = document.createElement('div');
+                tempDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:380px;';
+                tempDiv.innerHTML = receiptHtml;
+                document.body.appendChild(tempDiv);
+
+                const filename = `Payment_Receipt_${student?.student_code || 'STU'}_${new Date().toISOString().split('T')[0]}.pdf`;
+
+                await html2pdf()
+                    .set({
+                        margin: [0.5, 0.5, 0.5, 0.5],
+                        filename: filename,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true },
+                        jsPDF: { unit: 'in', format: 'a6', orientation: 'portrait' }
+                    })
+                    .from(tempDiv)
+                    .save();
+
+                document.body.removeChild(tempDiv);
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                showToast('⚠️ Could not generate payment receipt PDF.', 'warning');
+            }
+        }
+
         // ==================================================================================
 
-        async function downloadEnrollmentReceipt(paymentId, student, feeRecords) {
-            const payment = state.payments.find(p => p.id == paymentId);
+        async function downloadEnrollmentReceipt(payment, student, feeRecords) {
             if (!payment) {
                 showToast('Payment not found', 'error');
                 return;
@@ -11192,7 +11275,7 @@
         // GENERATE ENROLLMENT RECEIPT HTML (for auto-download)
         // ==================================================================================
 
-        function generateEnrollmentReceiptHTML(payment, student, feeRecords) {
+        function generateEnrollmentReceiptHTML(payment, student, feeRecords, title = '🎓 ENROLLMENT RECEIPT') {
             const cls = student ? getClassById(student.class_id) : null;
             const school = state.schoolSettings || {};
             const schoolName = school.school_name || 'ECOLE LA FONTAINE';
@@ -11225,7 +11308,7 @@
             <div style="text-align:center;border-bottom:2px solid #1a3a5c;padding-bottom:12px;margin-bottom:12px;">
                 <div style="width:60px;height:60px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;">${logoHtml}</div>
                 <div style="font-size:14px;font-weight:800;letter-spacing:.5px;color:#1a3a5c;">${esc(schoolName)}</div>
-                <div style="font-size:10px;font-weight:700;background:#1a3a5c;color:#fff;display:inline-block;padding:4px 12px;border-radius:20px;margin:8px 0 4px;">🎓 ENROLLMENT RECEIPT</div>
+                <div style="font-size:10px;font-weight:700;background:#1a3a5c;color:#fff;display:inline-block;padding:4px 12px;border-radius:20px;margin:8px 0 4px;">${title}</div>
                 <div style="font-size:9px;background:#f1f5f9;padding:3px 8px;border-radius:4px;display:inline-block;">${esc(payment.receipt_number || '—')}</div>
             </div>
             <div style="display:flex;justify-content:space-between;margin:4px 0;padding:3px 0;border-bottom:1px dotted #e2e8f0;">
@@ -14203,7 +14286,14 @@
             }
             if (byStudent.size === 0) { showToast('Enter an amount for at least one fee', 'warning'); return; }
 
+            const btn = document.querySelector('button[onclick="submitRecordPayment()"]');
+            const originalBtnHtml = btn?.innerHTML;
+            const setProgress = (msg) => { if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spinner-sm"></span> ${msg}`; } };
+            setProgress('Saving payment(s)…');
+
             let recordedCount = 0, grandTotal = 0;
+            const receiptsToDownload = []; // { payment, student, feeRecords }
+
             for (const [studentId, allocations] of byStudent.entries()) {
                 const amount = allocations.reduce((a, x) => a + x.amt, 0);
                 if (amount <= 0) continue;
@@ -14217,26 +14307,43 @@
                 });
                 if (!payment) continue;
 
+                const feeRecords = [];
                 for (const { feeId, amt } of allocations) {
                     const fee = state.studentFees.find(f => f.id === feeId);
                     if (!fee) continue;
                     const feeRemaining = fee.amount - (fee.paid_amount || 0);
                     const allocation = Math.min(amt, feeRemaining);
                     if (allocation > 0) {
+                        const newPaid = (fee.paid_amount || 0) + allocation;
                         await update('student_fees', fee.id, {
-                            paid_amount: (fee.paid_amount || 0) + allocation,
-                            is_paid: (fee.paid_amount || 0) + allocation >= fee.amount,
+                            paid_amount: newPaid,
+                            is_paid: newPaid >= fee.amount,
                             updated_at: new Date().toISOString()
+                        });
+                        feeRecords.push({
+                            categoryId: fee.fee_category_id,
+                            amount: fee.amount,
+                            paid: allocation,
+                            remaining: Math.max(0, fee.amount - newPaid)
                         });
                     }
                 }
+
                 recordedCount++;
                 grandTotal += amount;
+                receiptsToDownload.push({ payment, student: getStudentById(studentId), feeRecords });
             }
 
+            setProgress('Refreshing data…');
             await refreshTable('payments');
             await refreshTable('student_fees');
 
+            setProgress(`Generating ${receiptsToDownload.length} receipt(s)…`);
+            for (const { payment, student, feeRecords } of receiptsToDownload) {
+                await downloadPaymentReceipt(payment, student, feeRecords);
+            }
+
+            if (btn) { btn.disabled = false; btn.innerHTML = originalBtnHtml; }
             showToast(`✅ ${recordedCount} payment(s) recorded, total ${fmtCurrency(grandTotal)}`, 'success');
             navigateTo('payment-history');
         }
