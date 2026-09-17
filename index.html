@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>ECOLE LA FONTAINE — Complete School Management System v7.0</title>
+    <title>ECOLE LA FONTAINE — Complete School Management System</title>
 
     <!-- Manifest -->
     <link rel="manifest" href="/site.webmanifest">
@@ -3447,7 +3447,7 @@
                     <div class="login-content">
                         <div class="logo-box"><span>🏫</span></div>
                         <div class="school-name">ECOLE LA FONTAINE</div>
-                        <div class="login-subtitle">School Management System v7.0</div>
+                        <div class="login-subtitle">School Management System</div>
                         <div class="login-form">
                             <div class="login-field">
                                 <select id="login-role" onchange="onRoleChange()">
@@ -3739,8 +3739,9 @@
             sessionEnrollments: [],
             sessionAssessments: [],
             sessionMarks: [],
-            timetableSlots: [],
-            sessionTeacherAssignments: []
+            sessionTeacherAssignments: [],
+            teacherAssignments: [],
+            timetableSlots: []
         };
 
         // ==================================================================================
@@ -5216,17 +5217,31 @@
             await ensureStateLoaded();
 
             // Load additional data that might not be in ensureStateLoaded
-            const [settings, gradingScale, feeCategories, feeAmounts, studentFees, payments] = await Promise.all([
+            const [settings, students, teachers, classes, subjects, gradingScale, feeCategories, feeAmounts, studentFees, payments, teacherAssignments, timetableSlots] = await Promise.all([
                 getSchoolSettings(),
+                getAll('students', { is_deleted: false }),
+                getAll('teachers'),
+                getAll('classes'),
+                getAll('subjects'),
                 getAll('grading_scale'),
                 getAll('fee_categories'),
                 getAll('fee_amounts', { academic_year_id: getCurrentYearId() }),
                 getAll('student_fees', { academic_year_id: getCurrentYearId() }),
                 getAll('payments', { academic_year_id: getCurrentYearId() }),
+                getAll('teacher_assignments', { academic_year_id: yearId }),
                 getAll('timetable_slots', { academic_year_id: yearId })
             ]);
 
             state.schoolSettings = settings;
+            state.students = students;
+            state.teachers = teachers;
+            state.classes = classes;
+            state.subjects = subjects;
+            state.assessments = assessmentsData;
+            state.marks = marksData;
+            state.studentFees = studentFeesData;
+            state.teacherAssignments = teacherAssignments;   // ← ADD
+            state.timetableSlots = timetableSlots;
             state.feeCategories = feeCategories;
             state.feeAmounts = feeAmounts;
             state.studentFees = studentFees;
