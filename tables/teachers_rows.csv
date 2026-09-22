@@ -1,0 +1,17 @@
+id,name,email,username,password,phone,department,role,hire_date,is_active,last_login,created_at,updated_at
+0,System,system@ecolelafontaine.rw,system,password123,,,admin,,true,,2026-05-23 16:38:33.296696+00,2026-05-23 16:38:33.296696+00
+2,UWAYO GANZA Eugene,admin@school.local,The School Headteacher,admin123,,,admin,,true,,2026-04-13 10:34:30.671887+00,2026-04-13 10:34:30.671887+00
+3,Natson UWAYEZU,natson@icloud.com,Natson,Faida@123,,,teacher,,true,2026-09-17 21:51:48.73+00,2026-04-13 11:04:51.039483+00,2026-04-13 11:04:51.039483+00
+4,TUYIZERE Boniface,tuyizereboni@gmail.com,Boniface,Boniface,,,teacher,,true,2026-09-19 06:30:56.657+00,2026-04-14 09:15:57.25214+00,2026-04-14 09:15:57.25214+00
+5,TUYIZERE Emmanuel,emmanuel@gmail.com,Emmanuel,Emmanuel,,,teacher,,false,2026-07-02 16:03:38.093+00,2026-04-14 12:01:18.566874+00,2026-04-14 12:01:18.566874+00
+6,NYIRAHABINEZA Diane,nyirahabinezadiane298@gmail.com,Diane,Diane,,,teacher,,true,2026-07-23 00:07:57.002+00,2026-04-14 12:03:51.783937+00,2026-04-14 12:03:51.783937+00
+7,UJENEZA Rosine,ujenezarosine44@gmail.com,Rosine,Rosine,,,teacher,,false,2026-06-22 09:18:04.953+00,2026-04-14 12:06:17.583642+00,2026-04-14 12:06:17.583642+00
+8,NIYONSENGA Jeanette,jeanette@gmail.com,Jeanette,Jeanette,,,teacher,,true,2026-09-18 13:33:07.238+00,2026-04-14 12:09:15.217966+00,2026-04-14 12:09:15.217966+00
+9,UMUHOZA Ange,ange@gmail.com,Ange,Ange,,,teacher,,true,2026-07-22 22:40:07.665+00,2026-04-14 12:12:04.609793+00,2026-04-14 12:12:04.609793+00
+11,UWASE Sarah,sarah@gmail.com,Sarah,Sarah,,,teacher,,true,2026-09-18 14:02:47.286+00,2026-04-24 16:09:30.748133+00,2026-04-24 16:09:30.748133+00
+12,MUHIMPUNDU Laurence,muhimpundulauralla@gmail.com,Laurence,Laurence,+250780037256,Cashier,accountant,,false,2026-08-30 16:53:59.4+00,2026-05-24 00:38:08.018+00,2026-05-24 00:38:09.91392+00
+13,MURAGIJIMANA ISAIE,muragijimanaisaie7@gmail.com,Isaie,Isaie,0795028255,Languages,teacher,,true,2026-09-18 12:37:59.061+00,2026-09-02 18:52:29.285+00,2026-09-02 18:52:30.925467+00
+14,KWIZERA SCHADRACK,schadrackkwizera00@gmail.com,Schadrack,schadrack@2008,0733832489,Science,teacher,,true,2026-09-18 12:23:40.46+00,2026-09-02 18:56:51.124+00,2026-09-02 18:56:54.919128+00
+15,ALEXIS MELI REX,meligurham@gmail.com,ALEXIS,meligurham3,+243977259630,Languages,teacher,,true,2026-09-18 06:46:40.961+00,2026-09-18 05:14:44.619+00,2026-09-18 05:14:48.295311+00
+16,HABINEZA SAMY HORNE,samyhornehabineza@gmail.com,samy,samy123,0733741177,HUMANITIES,teacher,,true,2026-09-19 20:29:40.55+00,2026-09-18 06:48:46.008+00,2026-09-18 06:48:47.943208+00
+17,UWASE NDAYAMBAJE HORTANCE,uwasehortence6956@gmail.com,Hortance,Hortance123,+250794869269,Languages,teacher,,true,,2026-09-19 20:09:47.161+00,2026-09-19 20:09:47.460801+00

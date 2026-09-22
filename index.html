@@ -3413,6 +3413,281 @@
         #update-banner .close-btn:hover {
             background: rgba(255, 255, 255, .25);
         }
+
+        /* ==================================================================================
+   SECTION 22 — ATTENDANCE MODULE (v7.1)
+   ================================================================================== */
+        .att-header-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-left: 5px solid var(--role-primary);
+            border-radius: var(--r-lg);
+            padding: var(--md) var(--lg);
+            margin-bottom: var(--lg);
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--lg);
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .att-header-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--lg);
+            font-size: .85rem;
+        }
+
+        .att-header-meta>div {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .att-header-meta .lbl {
+            font-size: .65rem;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--text-muted);
+        }
+
+        .att-header-meta .val {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .att-date-picker {
+            display: flex;
+            align-items: center;
+            gap: var(--sm);
+        }
+
+        .att-date-picker input {
+            padding: 8px 12px;
+            border: 1px solid var(--border-medium);
+            border-radius: var(--r-md);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: .9rem;
+        }
+
+        .att-toolbar {
+            display: flex;
+            gap: var(--sm);
+            flex-wrap: wrap;
+            margin-bottom: var(--md);
+        }
+
+        .att-grid {
+            display: flex;
+            flex-direction: column;
+            gap: var(--sm);
+        }
+
+        .att-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: var(--md);
+            padding: var(--md);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            border-radius: var(--r-lg);
+            transition: all var(--transition);
+        }
+
+        .att-row:hover {
+            border-color: var(--role-primary);
+        }
+
+        .att-row.absent {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        [data-theme="dark"] .att-row.absent {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .att-name {
+            display: flex;
+            align-items: center;
+            gap: var(--sm);
+            font-weight: 600;
+            font-size: .95rem;
+        }
+
+        .att-name .idx {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            font-size: .75rem;
+            font-weight: 700;
+        }
+
+        .att-name .code {
+            font-size: .7rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-left: 4px;
+        }
+
+        .att-toggle {
+            display: inline-flex;
+            background: var(--bg-tertiary);
+            border-radius: var(--r-full);
+            padding: 3px;
+            gap: 3px;
+        }
+
+        .att-toggle button {
+            border: none;
+            background: transparent;
+            padding: 10px 20px;
+            border-radius: var(--r-full);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: .85rem;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            min-width: 88px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .att-toggle button:hover {
+            color: var(--text-primary);
+        }
+
+        .att-toggle button.present.active {
+            background: var(--success);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, .35);
+        }
+
+        .att-toggle button.absent.active {
+            background: var(--danger);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, .35);
+        }
+
+        .att-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--md);
+            margin-bottom: var(--lg);
+        }
+
+        .att-summary .stat-card {
+            padding: var(--md);
+        }
+
+        .att-summary .stat-value {
+            font-size: 1.5rem;
+        }
+
+        .att-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: var(--r-full);
+            font-size: .7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+
+        .att-pill.present {
+            background: var(--success-bg);
+            color: var(--success-text);
+        }
+
+        .att-pill.absent {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+        }
+
+        .att-pill.unmarked {
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+        }
+
+        .att-sticky-save {
+            position: sticky;
+            bottom: 0;
+            z-index: 20;
+            background: var(--bg-primary);
+            padding: var(--md) 0;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            gap: var(--sm);
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: var(--lg);
+        }
+
+        .att-sticky-save .btn-lg {
+            min-width: 200px;
+        }
+
+        .att-unsaved {
+            color: var(--warning);
+            font-weight: 600;
+            font-size: .8rem;
+            margin-left: auto;
+        }
+
+        .att-perm-note {
+            font-size: .8rem;
+            color: var(--text-muted);
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .att-row {
+                grid-template-columns: 1fr;
+                gap: var(--sm);
+            }
+
+            .att-toggle {
+                width: 100%;
+            }
+
+            .att-toggle button {
+                flex: 1;
+                min-width: 0;
+                padding: 12px 8px;
+                font-size: .82rem;
+            }
+
+            .att-header-card {
+                padding: var(--md);
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .att-header-meta {
+                gap: var(--md);
+            }
+
+            .att-sticky-save .btn-lg {
+                min-width: 0;
+                flex: 1;
+            }
+
+            .att-sticky-save {
+                flex-wrap: wrap;
+            }
+        }
     </style>
 </head>
 
@@ -3913,22 +4188,69 @@
         // ==================================================================================
 
         const TIMETABLE_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-        const TIMETABLE_TIME_SLOTS = [
+
+        // ---------------------------------------------------------------
+        // Timetable skeletons — one per academic year
+        //
+        // Year 1 (2025-2026): original skeleton with a 13:00-13:40 slot
+        //                      and a 15:00-15:20 afternoon break.
+        //                      Existing DB rows (year 1) use these exact strings.
+        //
+        // Year 2 (2026-2027): extended lunch (12:00-13:40), no afternoon break,
+        //                     and a 16:20-16:40 homework slot at the end.
+        // ---------------------------------------------------------------
+        const TIMETABLE_TIME_SLOTS_YEAR_1 = [
             '08:20-09:00', '09:00-09:40', '09:40-10:20', '10:20-10:40',
             '10:40-11:20', '11:20-12:00', '12:00-13:00', '13:00-13:40',
             '13:40-14:20', '14:20-15:00', '15:00-15:20', '15:20-16:00', '16:00-16:40'
         ];
 
+        const TIMETABLE_TIME_SLOTS_YEAR_2 = [
+            '08:20-09:00', '09:00-09:40', '09:40-10:20', '10:20-10:40',
+            '10:40-11:20', '11:20-12:00', '12:00-13:40',
+            '13:40-14:20', '14:20-15:00', '15:00-15:40', '15:40-16:20',
+            '16:20-16:40'
+        ];
+
+        // Legacy alias — anything still referencing TIMETABLE_TIME_SLOTS
+        // gets year 1's skeleton by default. New code should use
+        // getTimetableTimeSlots() instead.
+        const TIMETABLE_TIME_SLOTS = TIMETABLE_TIME_SLOTS_YEAR_1;
+
+        // ---------------------------------------------------------------
+        // Period-aware accessors — pick the skeleton for the current year.
+        // ---------------------------------------------------------------
+        function getTimetableTimeSlots() {
+            return getCurrentYearId() === 2
+                ? TIMETABLE_TIME_SLOTS_YEAR_2
+                : TIMETABLE_TIME_SLOTS_YEAR_1;
+        }
+
         function isBreakSlot(ts) {
-            return ts === '10:20-10:40' || ts === '12:00-13:00' || ts === '15:00-15:20';
+            // Both years share the morning break
+            if (ts === '10:20-10:40') return true;
+            // Lunch: year 1 uses 12:00-13:00 (60 min), year 2 uses 12:00-13:40 (100 min)
+            if (ts === '12:00-13:00' || ts === '12:00-13:40') return true;
+            // Year 1 only: afternoon break
+            if (ts === '15:00-15:20') return true;
+            return false;
         }
 
         function getBreakIcon(ts) {
             if (ts === '10:20-10:40') return '🍎';
-            if (ts === '12:00-13:00') return '🍽️';
+            if (ts === '12:00-13:00' || ts === '12:00-13:40') return '🍽️';
             if (ts === '15:00-15:20') return '☕';
             return '';
         }
+
+        function getBreakLabel(ts) {
+            if (ts === '10:20-10:40') return '🍎 MORNING BREAK';
+            if (ts === '12:00-13:00' || ts === '12:00-13:40') return '🍽️ LUNCH BREAK';
+            if (ts === '15:00-15:20') return '☕ AFTERNOON BREAK';
+            if (ts === '16:20-16:40') return '📚 HOMEWORK';
+            return '';
+        }
+
 
         function getDayOrder(day) {
             const order = { 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5 };
@@ -3974,6 +4296,23 @@
             }
             return conflicts;
         }
+
+        // Truncate a display string to `max` characters, ellipsis if cut.
+        // Returns HTML-escaped output — safe to drop into templates.
+        function truncate(text, max = 14) {
+            const s = String(text ?? '').trim();
+            if (s.length <= max) return esc(s);
+            return esc(s.slice(0, max - 1).trimEnd()) + '…';
+        }
+
+        // Truncate but keep the full string available as a hover tooltip.
+        function truncateWithTitle(text, max = 14) {
+            const s = String(text ?? '').trim();
+            return `<span title="${esc(s)}">${truncate(s, max)}</span>`;
+        }
+
+        window.truncate = truncate;
+        window.truncateWithTitle = truncateWithTitle;
 
         // ==================================================================================
         // 5. SIBLING LINKING HELPERS
@@ -4539,6 +4878,14 @@
             return `${prefix}_${date}.${format}`;
         }
 
+        function shortClassName(name) {
+            const s = String(name || '').trim();
+            // "PRIMARY 5" → "P5", "NURSERY 1" → "N1", "PRIMARY 1A" → "P1A"
+            return s
+                .replace(/^PRIMARY\s+/i, 'P')
+                .replace(/^NURSERY\s+/i, 'N');
+        }
+
         // ==================================================================================
         // UTILITY FUNCTIONS
         // ==================================================================================
@@ -4596,10 +4943,17 @@
 
         function getGrade(pct, scale = state.gradingScale) {
             if (pct === null || pct === undefined || isNaN(pct)) return '—';
-            for (const g of scale) {
+
+            // Sort bands by min_percentage descending so we can find the highest band whose min is <= pct
+            const bands = [...scale].sort((a, b) => {
+                const aMin = a.min_percentage !== undefined ? a.min_percentage : a.min;
+                const bMin = b.min_percentage !== undefined ? b.min_percentage : b.min;
+                return bMin - aMin;
+            });
+
+            for (const g of bands) {
                 const minVal = g.min_percentage !== undefined ? g.min_percentage : g.min;
-                const maxVal = g.max_percentage !== undefined ? g.max_percentage : g.max;
-                if (pct >= minVal && pct <= maxVal) return g.grade;
+                if (pct >= minVal) return g.grade;
             }
             return 'F';
         }
@@ -4650,7 +5004,9 @@
         }
 
         function sortStudentsAlpha(arr) {
-            return [...arr].sort((a, b) => studentSortName(a).localeCompare(studentSortName(b), 'fr-RW', { sensitivity: 'base' }));
+            return [...arr].sort((a, b) =>
+                studentSortName(a).localeCompare(studentSortName(b), 'fr-RW', { sensitivity: 'base' })
+            );
         }
 
         window.studentFullName = studentFullName;
@@ -5067,6 +5423,21 @@
             if (!state.currentAcadYear && state.academicYears.length) {
                 state.currentAcadYear = state.academicYears.find(y => y.is_active) || state.academicYears[0];
             }
+            if (!state.teacherAssignments.length) {
+                promises.push(
+                    getAll('teacher_assignments', { academic_year_id: getCurrentYearId() })
+                        .then(d => { state.teacherAssignments = d || []; })
+                        .catch(() => { state.teacherAssignments = []; })
+                );
+            }
+
+            if (!state.timetableSlots.length) {
+                promises.push(
+                    getAll('timetable_slots', { academic_year_id: getCurrentYearId() })
+                        .then(d => { state.timetableSlots = d || []; })
+                        .catch(() => { state.timetableSlots = []; })
+                );
+            }
 
             console.log('✅ State loaded:', {
                 students: state.students.length,
@@ -5257,6 +5628,23 @@
                 color: '#065f46'
             })) : DEFAULT_GRADES;
 
+            // Sanity check: verify the scale has no gaps.
+            (function checkGradeScaleGaps(scale) {
+                if (!scale || scale.length < 2) return;
+                const sorted = [...scale].sort((a, b) => a.min - b.min);
+                for (let i = 1; i < sorted.length; i++) {
+                    const lower = sorted[i - 1];
+                    const upper = sorted[i];
+                    if (upper.min > lower.max + 1) {
+                        console.warn(
+                            `⚠️ Grading scale has a gap: ${lower.grade} ends at ${lower.max}%, ` +
+                            `but ${upper.grade} starts at ${upper.min}%. ` +
+                            `Percentages between ${lower.max}% and ${upper.min}% will fall into ${upper.grade}.`
+                        );
+                    }
+                }
+            })(state.gradingScale);
+
             if (settings.school_logo) {
                 applySchoolLogo(settings.school_logo);
             }
@@ -5370,13 +5758,16 @@
                     }
                 }
 
-                const [students, teachers, classes, subjects, feeCategories, feeAmounts] = await Promise.all([
+
+                const [students, teachers, classes, subjects, feeCategories, feeAmounts, teacherAssignments, timetableSlots] = await Promise.all([
                     getAll('students', { is_deleted: false }),
                     getAll('teachers'),
                     getAll('classes'),
                     getAll('subjects'),
                     getAll('fee_categories'),
-                    getAll('fee_amounts', { academic_year_id: yearId })
+                    getAll('fee_amounts', { academic_year_id: yearId }),
+                    getAll('teacher_assignments', { academic_year_id: yearId }),
+                    getAll('timetable_slots', { academic_year_id: yearId })
                 ]);
 
                 state.students = students;
@@ -5423,6 +5814,23 @@
                 bg: g.color || '#d1fae5',
                 color: '#065f46'
             })) : DEFAULT_GRADES;
+
+            // Sanity check: verify the scale has no gaps.
+            (function checkGradeScaleGaps(scale) {
+                if (!scale || scale.length < 2) return;
+                const sorted = [...scale].sort((a, b) => a.min - b.min);
+                for (let i = 1; i < sorted.length; i++) {
+                    const lower = sorted[i - 1];
+                    const upper = sorted[i];
+                    if (upper.min > lower.max + 1) {
+                        console.warn(
+                            `⚠️ Grading scale has a gap: ${lower.grade} ends at ${lower.max}%, ` +
+                            `but ${upper.grade} starts at ${upper.min}%. ` +
+                            `Percentages between ${lower.max}% and ${upper.min}% will fall into ${upper.grade}.`
+                        );
+                    }
+                }
+            })(state.gradingScale);
 
             // Now use academicYears safely
             state.currentAcadYear = academicYears.find(y => y.id === yearId) || academicYears.find(y => y.is_active) || academicYears[0];
@@ -5671,7 +6079,8 @@
                 } else {
                     const items = [
                         { id: 'marks-entry', icon: '✏️', label: 'Marks Entry' },
-                        { id: 'marks-database', icon: '🗄️', label: 'Marks Database' }
+                        { id: 'marks-database', icon: '🗄️', label: 'Marks Database' },
+                        { id: 'attendance-entry', icon: '🗓️', label: 'Attendance' }
                     ];
                     // Class Register only if this teacher is the class teacher of some class
                     if (isCurrentUserClassTeacher()) {
@@ -5697,7 +6106,8 @@
                             { id: 'holiday-marks-entry', icon: '✏️', label: 'Holiday Marks Entry' },
                             { id: 'holiday-marks-database', icon: '🗄️', label: 'Holiday Marks Database' },
                             { id: 'holiday-class-register', icon: '📋', label: 'Holiday Class Register' },
-                            { id: 'holiday-report-cards', icon: '📄', label: 'Holiday Report Cards' }
+                            { id: 'holiday-report-cards', icon: '📄', label: 'Holiday Report Cards' },
+                            { id: 'attendance-entry', icon: '🗓️', label: 'Attendance' }
                         ]
                     });
                 } else {
@@ -5709,7 +6119,8 @@
                             { id: 'class-register', icon: '📋', label: 'Class Register' },
                             { id: 'statistics', icon: '📈', label: 'Statistics' },
                             { id: 'report-cards', icon: '📄', label: 'Report Cards' },
-                            { id: 'timetable', icon: '🕐', label: 'Timetable' }
+                            { id: 'timetable', icon: '🕐', label: 'Timetable' },
+                            { id: 'attendance-entry', icon: '🗓️', label: 'Attendance' }
                         ]
                     });
                 }
@@ -5763,7 +6174,10 @@
                         { id: 'teachers-list', icon: '📋', label: 'Teachers List' },
                         { id: 'subjects', icon: '📖', label: 'Subjects' },
                         { id: 'teacher-assignments', icon: '📌', label: 'Assignments' },
-                        { id: 'teacher-performance', icon: '⭐', label: 'Teacher Performance' }
+                        { id: 'teacher-performance', icon: '⭐', label: 'Teacher Performance' },
+                        { id: 'attendance-dashboard', icon: '📊', label: 'Attendance Dashboard' },
+                        { id: 'attendance-reports', icon: '📈', label: 'Attendance Reports' },
+                        { id: 'attendance-audit', icon: '🔍', label: 'Attendance Audit' }
                     ]
                 });
                 config.push({
@@ -5892,7 +6306,7 @@
             'timetable', 'holiday-marks-entry',
             'holiday-marks-database',
             'holiday-class-register',
-            'notifications', 'announcements'
+            'notifications', 'announcements', 'attendance-entry'
         ]);
 
         async function loadModule(id) {
@@ -5944,6 +6358,10 @@
                     'subjects': renderSubjects,
                     'teacher-assignments': renderTeacherAssignments,
                     'teacher-performance': renderTeacherPerformance,
+                    'attendance-entry': renderAttendanceEntry,
+                    'attendance-dashboard': renderAttendanceDashboard,
+                    'attendance-reports': renderAttendanceReports,
+                    'attendance-audit': renderAttendanceAudit,
                     'school-settings': renderSchoolSettings,
                     'academic-calendar': renderAcademicCalendar,
                     'class-management': renderClassManagement,
@@ -6322,7 +6740,7 @@
             const subjects = (state.sessionSubjects || []).filter(s => s.session_class_id == classId);
             const sel = document.getElementById('hme-subject');
             sel.innerHTML = '<option value="">— Select subject —</option>' +
-                subjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+                subjects.map(s => `<option value="${s.id}">${esc(s.name.slice(0, 30))}${s.name.length > 30 ? '…' : ''}</option>`).join('');
             updateHMEMaxFromSubject();
         }
 
@@ -6343,8 +6761,9 @@
             const enrollments = (state.sessionEnrollments || []).filter(e => e.session_class_id == classId && e
                 .is_active !== false);
             const studentIds = enrollments.map(e => e.student_id);
-            const students = (state.students || []).filter(s => studentIds.includes(s.id) && s.status === 'Active')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name) || a.last_name.localeCompare(b.last_name));
+            const students = sortStudentsAlpha(
+                (state.students || []).filter(s => studentIds.includes(s.id) && s.status === 'Active')
+            );
 
             _hmeStudents = students;
 
@@ -6373,7 +6792,7 @@
                 const pct = val !== '' ? (val / max * 100) : null;
                 return `<tr>
                     <td style="text-align:center;color:var(--text-muted)">${i + 1}</td>
-                    <td><strong>${esc(s.last_name + ' ' + s.first_name)}</strong></td>
+                    <td><strong>${esc(s.first_name + ' ' + s.last_name)}</strong></td>
                     <td style="text-align:center"><input class="marks-input" type="number" id="hscore-${s.id}" value="${val}" min="0" max="${max}" step="0.5" oninput="updateHMERow(${s.id},${max})"></td>
                     <td style="text-align:center;color:var(--text-muted)">${max}</td>
                     <td style="text-align:center;font-size:.82rem" id="hpct-${s.id}">${pct !== null ? fmtPct(pct) : '—'}</td>
@@ -6630,7 +7049,7 @@
             const subjects = (state.sessionSubjects || []).filter(s => s.session_class_id == classId);
             const sel = document.getElementById('hdb-subject');
             sel.innerHTML = '<option value="">-- Select Subject --</option>' +
-                subjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+                subjects.map(s => `<option value="${s.id}">${esc(s.name.slice(0, 30))}${s.name.length > 30 ? '…' : ''}</option>`).join('');
 
             document.getElementById('hdb-assessment').innerHTML = '<option value="">-- Select Assessment --</option>';
         }
@@ -6751,8 +7170,9 @@
             const enrollments = (state.sessionEnrollments || []).filter(e => e.session_class_id == classId && e
                 .is_active !== false);
             const studentIds = enrollments.map(e => e.student_id);
-            const students = (state.students || []).filter(s => studentIds.includes(s.id) && s.status === 'Active')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name) || a.last_name.localeCompare(b.last_name));
+            const students = sortStudentsAlpha(
+                (state.students || []).filter(s => studentIds.includes(s.id) && s.status === 'Active')
+            );
 
             const assessments = (state.sessionAssessments || []).filter(a => a.session_class_id == classId);
             const marks = state.sessionMarks || [];
@@ -6815,7 +7235,7 @@
                 html += `
                     <tr class="${idx % 2 === 0 ? '' : 'alt-row'}">
                         <td style="text-align:center;color:var(--text-muted)">${idx + 1}</td>
-                        <td><strong>${esc(data.student.last_name + ' ' + data.student.first_name)}</strong></td>
+                        <td><strong>${esc(data.student.first_name + ' ' + data.student.last_name)}</strong></td>
                         ${data.subjectScores.map(s => `<td style="text-align:center;white-space:nowrap;background:${s.percentage !== null ? getMarkBg(s.percentage) : ''}">${s.percentage !== null ? Math.round(s.percentage) : '—'}</td>`).join('')}
                         <td style="text-align:center;white-space:nowrap;font-weight:600">${pctDisplay}</td>
                         <td style="text-align:center;white-space:nowrap"><span class="badge ${getGradeClass(data.overallPct)}">${grade}</span></td>
@@ -6896,9 +7316,9 @@
             const enrollments = (state.sessionEnrollments || []).filter(e => e.session_class_id == classId && e
                 .is_active !== false);
             const studentIds = enrollments.map(e => e.student_id);
-            const students = (state.students || []).filter(s => studentIds.includes(s.id) && s.status === 'Active')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name) || a.last_name.localeCompare(b.last_name));
-
+            const students = sortStudentsAlpha(
+                (state.students || []).filter(s => studentIds.includes(s.id) && s.status === 'Active')
+            );
             const sel = document.getElementById('hrc-student');
             sel.innerHTML = '<option value="">— Select Student —</option>' +
                 students.map(s => `<option value="${s.id}">${esc(s.first_name)} ${esc(s.last_name)}</option>`).join('');
@@ -7285,7 +7705,7 @@
             const subjects = (state.sessionSubjects || []).filter(s => s.session_class_id == classId);
             const sel = document.getElementById('cha-subject');
             sel.innerHTML = '<option value="">— Select Subject —</option>' +
-                subjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+                subjects.map(s => `<option value="${s.id}">${esc(s.name.slice(0, 30))}${s.name.length > 30 ? '…' : ''}</option>`).join('');
         }
 
         async function createHolidayAssessment() {
@@ -7797,7 +8217,8 @@
                                 <label>Type *</label>
                                 <!-- TEMPORARILY: Only Welcoming Test during this session -->
 <select id="me-type">
-    <option value="Welcoming Test" selected>Welcoming Test</option>
+    <option value="Quiz">Quiz</option>
+    <option value="Assignment">Assignment</option>
 </select>
 <!--
 <select id="me-type">
@@ -7875,7 +8296,7 @@
 
             const sel = document.getElementById('me-subject');
             sel.innerHTML = '<option value="">— Select subject —</option>' +
-                subjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+                subjects.map(s => `<option value="${s.id}">${esc(s.name.slice(0, 30))}${s.name.length > 30 ? '…' : ''}</option>`).join('');
             if (subjects.length === 0) {
                 sel.innerHTML = '<option value="">— No subjects assigned to you in this class —</option>';
             }
@@ -7899,8 +8320,9 @@
 
             if (!classId || !subjectId || !name) { showToast('Fill in all required fields', 'warning'); return; }
 
-            const students = state.students.filter(s => s.class_id == classId && s.status === 'Active')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name) || a.last_name.localeCompare(b.last_name));
+            const students = sortStudentsAlpha(
+                state.students.filter(s => s.class_id == classId && s.status === 'Active')
+            );
             _meStudents = students;
 
             const existing = state.assessments.find(a =>
@@ -7928,7 +8350,7 @@
                 const pct = val !== '' ? (val / max * 100) : null;
                 return `<tr>
                     <td style="text-align:center;color:var(--text-muted)">${i + 1}</td>
-                    <td><strong>${esc(s.last_name + ' ' + s.first_name)}</strong></td>
+                    <td><strong>${esc(s.first_name + ' ' + s.last_name)}</strong></td>
                     <td style="text-align:center"><input class="marks-input" type="number" id="score-${s.id}" value="${val}" min="0" max="${max}" step="0.5" oninput="updateMERow(${s.id},${max})"></td>
                     <td style="text-align:center;color:var(--text-muted)">${max}</td>
                     <td style="text-align:center;font-size:.82rem" id="pct-${s.id}">${pct !== null ? fmtPct(pct) : '—'}</td>
@@ -8303,7 +8725,7 @@
             } else {
                 students = getRosterForClassAndYear(classId, getCurrentYearId());
             }
-            students.sort((a, b) => a.first_name.localeCompare(b.first_name) || a.last_name.localeCompare(b.last_name));
+            students = sortStudentsAlpha(students);
 
             // Get subjects
             let subjects = isHoliday ?
@@ -8429,7 +8851,7 @@
                 const totalBg = getMarkBg(row.avgPct || 0);
                 return `<tr class="${i % 2 === 0 ? '' : 'alt-row'}" style="${row.st.status !== 'Active' ? 'opacity:.6;font-style:italic' : ''}">
                         <td style="text-align:center;color:var(--text-muted)">${i + 1}</td>
-                        <td><strong>${esc(row.st.last_name + ' ' + row.st.first_name)}</strong>${row.st.status !== 'Active' ? ` <span style="font-size:.65rem;color:var(--warning)">(${row.st.status})</span>` : ''}${row.cells.join('')}
+                        <td><strong>${esc(row.st.first_name + ' ' + row.st.last_name)}</strong>${row.st.status !== 'Active' ? ` <span style="font-size:.65rem;color:var(--warning)">(${row.st.status})</span>` : ''}${row.cells.join('')}
                         ${phase === 'post_midterm' ? `<td style="text-align:center;white-space:nowrap;font-weight:600">${fmt(row.totalMG, 1)}</td>
                             <td style="text-align:center;white-space:nowrap;font-weight:600">${fmt(row.totalEX, 1)}</td>
                             <td style="text-align:center;white-space:nowrap;font-weight:700;background:${totalBg}">${totalDisplay}</td>` : `<td style="text-align:center;white-space:nowrap;font-weight:700;background:${totalBg}">${totalDisplay}</td>`}
@@ -8467,7 +8889,7 @@
             } else {
                 students = getRosterForClassAndYear(classId, getCurrentYearId());
             }
-            students.sort((a, b) => a.first_name.localeCompare(b.first_name) || a.last_name.localeCompare(b.last_name));
+            students = sortStudentsAlpha(students);
 
             let subjects = isHoliday ?
                 (state.sessionSubjects || []).filter(s => s.session_class_id == classId) :
@@ -8535,7 +8957,7 @@
             });
 
             const annDisplayName = isNursery ? (cls?.name || '').replace(/nursery/i, 'MATERNELLE').replace(/primary/i, 'PRIMAIRE') : (cls?.name || '');
-            container.innerHTML = `<div style="padding:8px 16px;background:#f0fdf4;border-radius:8px;margin-bottom:8px;font-size:.8rem;font-weight:600;color:#065f46">📊 ${isNursery ? 'VUE ANNUELLE' : 'ANNUAL VIEW'} — ${esc(annDisplayName)} — ${isNursery ? 'Les' : 'All'} ${terms.length} ${isNursery ? 'Trimestres Combinés' : 'Terms Combined'}</div><div style="overflow-x:auto"><table class="data-table" style="min-width:700px;font-size:.77rem;border-collapse:collapse"><thead><tr style="background:var(--bg-tertiary)"><th rowspan="2">#</th><th rowspan="2" style="min-width:140px">${isNursery ? 'ÉLÈVE' : 'STUDENT'}</th>${subjects.map(sub => `<th colspan="3" style="text-align:center;border:1px solid var(--border-medium)">${esc(sub.name.toUpperCase())}</th>`).join('')}<th rowspan="2" style="text-align:center">TOT_MG</th><th rowspan="2" style="text-align:center">TOT_EX</th><th rowspan="2" style="text-align:center">G_TOT</th><th rowspan="2" style="text-align:center">%</th><th rowspan="2" style="text-align:center">${isNursery ? 'COTE' : 'GRADE'}</th><th rowspan="2" style="text-align:center">${isNursery ? 'RANG' : 'RANK'}</th></tr><tr style="background:var(--bg-secondary)">${subjects.map(() => `<th style="text-align:center;font-size:.7rem">Tot-MG</th><th style="text-align:center;font-size:.7rem">Tot-EX</th><th style="text-align:center;font-size:.7rem">G-TOT</th>`).join('')}</tr></thead><tbody>${rows.map((row, i) => `<tr class="${i % 2 === 0 ? '' : 'alt-row'}"><td style="text-align:center;color:var(--text-muted)">${i + 1}</td><td><strong>${esc(row.st.last_name + ' ' + row.st.first_name)}</strong>${row.subCells.join('')}<td style="text-align:center;font-weight:600">${fmt(row.annualMG, 1)}</td><td style="text-align:center;font-weight:600">${fmt(row.annualEX, 1)}</td><td style="text-align:center;font-weight:700;background:${getMarkBg(row.pct || 0)}">${fmt(row.annualTOT, 1)}</td><td style="text-align:center;font-weight:600">${row.pct !== null ? fmtPct(row.pct) : '—'}</td><td style="text-align:center"><span class="badge ${getGradeClass(row.pct)}">${getGrade(row.pct)}</span></td><td style="text-align:center;font-weight:700">${rankMap.get(row.st.id) || '—'}</td></tr>`).join('') || `<tr><td colspan="100" style="text-align:center;padding:var(--lg);color:var(--text-muted)">No students</td></tr>`}</tbody><tfoot><tr style="background:var(--bg-tertiary);font-weight:600"><td colspan="2" style="text-align:right;padding:8px">${isNursery ? 'MOYENNE' : 'AVERAGE'}</td>${annAvgRow.join('')}<td style="background:#e8f4ff"></td><td style="background:#e8f4ff"></td><td style="background:#d1fae5"></td><td></td><td></td><td></td></tr></tfoot></table></div><div style="padding:12px 16px;background:var(--bg-secondary);border-top:1px solid var(--border-light);border-radius:0 0 8px 8px;display:flex;gap:24px;flex-wrap:wrap;font-size:.82rem">${(() => { const pcts = rows.filter(r => r.pct !== null).map(r => r.pct); const classAvg = pcts.length ? pcts.reduce((a, b) => a + b, 0) / pcts.length : 0; const passRate = pcts.length ? (pcts.filter(p => p >= 50).length / pcts.length * 100).toFixed(0) : 0; const top = rows.filter(r => r.pct !== null).sort((a, b) => b.pct - a.pct)[0]; return `<span>📊 Class Avg: <strong>${classAvg.toFixed(1)}%</strong></span><span>✅ Pass Rate: <strong>${passRate}%</strong></span><span>🏆 Top: <strong>${top ? esc(top.st.last_name + ' ' + top.st.first_name) + ' (' + fmtPct(top.pct) + ')' : '—'}</strong></span><span>👥 Students: <strong>${rows.length}</strong></span>`; })()}</div>`;
+            container.innerHTML = `<div style="padding:8px 16px;background:#f0fdf4;border-radius:8px;margin-bottom:8px;font-size:.8rem;font-weight:600;color:#065f46">📊 ${isNursery ? 'VUE ANNUELLE' : 'ANNUAL VIEW'} — ${esc(annDisplayName)} — ${isNursery ? 'Les' : 'All'} ${terms.length} ${isNursery ? 'Trimestres Combinés' : 'Terms Combined'}</div><div style="overflow-x:auto"><table class="data-table" style="min-width:700px;font-size:.77rem;border-collapse:collapse"><thead><tr style="background:var(--bg-tertiary)"><th rowspan="2">#</th><th rowspan="2" style="min-width:140px">${isNursery ? 'ÉLÈVE' : 'STUDENT'}</th>${subjects.map(sub => `<th colspan="3" style="text-align:center;border:1px solid var(--border-medium)">${esc(sub.name.toUpperCase())}</th>`).join('')}<th rowspan="2" style="text-align:center">TOT_MG</th><th rowspan="2" style="text-align:center">TOT_EX</th><th rowspan="2" style="text-align:center">G_TOT</th><th rowspan="2" style="text-align:center">%</th><th rowspan="2" style="text-align:center">${isNursery ? 'COTE' : 'GRADE'}</th><th rowspan="2" style="text-align:center">${isNursery ? 'RANG' : 'RANK'}</th></tr><tr style="background:var(--bg-secondary)">${subjects.map(() => `<th style="text-align:center;font-size:.7rem">Tot-MG</th><th style="text-align:center;font-size:.7rem">Tot-EX</th><th style="text-align:center;font-size:.7rem">G-TOT</th>`).join('')}</tr></thead><tbody>${rows.map((row, i) => `<tr class="${i % 2 === 0 ? '' : 'alt-row'}"><td style="text-align:center;color:var(--text-muted)">${i + 1}</td><td><strong>${esc(row.st.first_name + ' ' + row.st.last_name)}</strong>${row.subCells.join('')}<td style="text-align:center;font-weight:600">${fmt(row.annualMG, 1)}</td><td style="text-align:center;font-weight:600">${fmt(row.annualEX, 1)}</td><td style="text-align:center;font-weight:700;background:${getMarkBg(row.pct || 0)}">${fmt(row.annualTOT, 1)}</td><td style="text-align:center;font-weight:600">${row.pct !== null ? fmtPct(row.pct) : '—'}</td><td style="text-align:center"><span class="badge ${getGradeClass(row.pct)}">${getGrade(row.pct)}</span></td><td style="text-align:center;font-weight:700">${rankMap.get(row.st.id) || '—'}</td></tr>`).join('') || `<tr><td colspan="100" style="text-align:center;padding:var(--lg);color:var(--text-muted)">No students</td></tr>`}</tbody><tfoot><tr style="background:var(--bg-tertiary);font-weight:600"><td colspan="2" style="text-align:right;padding:8px">${isNursery ? 'MOYENNE' : 'AVERAGE'}</td>${annAvgRow.join('')}<td style="background:#e8f4ff"></td><td style="background:#e8f4ff"></td><td style="background:#d1fae5"></td><td></td><td></td><td></td></tr></tfoot></table></div><div style="padding:12px 16px;background:var(--bg-secondary);border-top:1px solid var(--border-light);border-radius:0 0 8px 8px;display:flex;gap:24px;flex-wrap:wrap;font-size:.82rem">${(() => { const pcts = rows.filter(r => r.pct !== null).map(r => r.pct); const classAvg = pcts.length ? pcts.reduce((a, b) => a + b, 0) / pcts.length : 0; const passRate = pcts.length ? (pcts.filter(p => p >= 50).length / pcts.length * 100).toFixed(0) : 0; const top = rows.filter(r => r.pct !== null).sort((a, b) => b.pct - a.pct)[0]; return `<span>📊 Class Avg: <strong>${classAvg.toFixed(1)}%</strong></span><span>✅ Pass Rate: <strong>${passRate}%</strong></span><span>🏆 Top: <strong>${top ? esc(top.st.first_name + ' ' + top.st.last_name) + ' (' + fmtPct(top.pct) + ')' : '—'}</strong></span><span>👥 Students: <strong>${rows.length}</strong></span>`; })()}</div>`;
         }
 
         async function renderStatistics(container) {
@@ -9229,7 +9651,7 @@
             }
 
             const classOpts = classes.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
-            const subjectOpts = uniqueSubjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+            const subjectOpts = uniquesubjects.map(s => `<option value="${s.id}">${esc(s.name.slice(0, 30))}${s.name.length > 30 ? '…' : ''}</option>`).join('');
 
             container.innerHTML = `
         <div class="dash-card">
@@ -9387,7 +9809,7 @@
             const today = new Date().toISOString().split('T')[0];
 
             const classOpts = classes.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
-            const subjectOpts = subjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+            const subjectOpts = subjects.map(s => `<option value="${s.id}">${esc(s.name.slice(0, 30))}${s.name.length > 30 ? '…' : ''}</option>`).join('');
 
             showModal(`
         <div class="modal-overlay"><div class="modal" style="max-width:520px"><div class="modal-header"><h3>➕ CREATE NEW ASSESSMENT</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -9430,7 +9852,7 @@
                 state.subjects.filter(s => s.is_active !== false).sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
             const sel = document.getElementById('ca-subject');
             sel.innerHTML = '<option value="">— Select subject —</option>' +
-                subjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+                subjects.map(s => `<option value="${s.id}">${esc(s.name.slice(0, 30))}${s.name.length > 30 ? '…' : ''}</option>`).join('');
         }
 
         async function submitCreateAssessment() {
@@ -9742,11 +10164,9 @@
                 }
             }
 
-            // Get marks (or use provided)
-            let marks = allMarks;
-            if (!marks || marks.length === 0) {
-                marks = state.marks;
-            }
+            // ALWAYS use the full mark set from state — never trust the passed-in `allMarks`,
+            // which callers often narrow to just the current student, breaking class-wide ranking.
+            let marks = isHoliday ? (state.sessionMarks || []) : (state.marks || []);
 
             const studentScores = [];
 
@@ -9848,7 +10268,8 @@
                     }
                 }
 
-                const percentage = totalMax > 0 ? (totalScore / totalMax) * 100 : 0;
+                // null = "no marks" — will be excluded from ranking
+                const percentage = totalMax > 0 ? (totalScore / totalMax) * 100 : null;
                 studentScores.push({
                     id: student.id,
                     name: `${student.first_name} ${student.last_name}`,
@@ -9858,36 +10279,48 @@
                 });
             }
 
-            // Rank students
+            // Sort: highest percentage first. null (no-marks) students go to the bottom.
             studentScores.sort((a, b) => {
+                if (a.percentage === null && b.percentage === null) return a.name.localeCompare(b.name);
+                if (a.percentage === null) return 1;
+                if (b.percentage === null) return -1;
                 if (b.percentage !== a.percentage) return b.percentage - a.percentage;
                 return a.name.localeCompare(b.name);
             });
 
             let rank = 1;
             let previousPercentage = null;
-            let rankDisplay = '';
+            let rankDisplay = '—';   // default when current student has no marks
             const totalStudents = studentScores.length;
 
             for (let i = 0; i < studentScores.length; i++) {
                 const current = studentScores[i];
-                if (previousPercentage !== null && current.percentage !== previousPercentage) {
+
+                // Bump rank whenever the percentage drops from the previous row.
+                // Nulls are skipped so a student with no marks doesn't disturb the count.
+                if (
+                    previousPercentage !== null &&
+                    current.percentage !== null &&
+                    current.percentage !== previousPercentage
+                ) {
                     rank = i + 1;
                 }
+
                 if (current.id == studentId) {
-                    if (isNursery) {
-                        const rankSuffix = rank === 1 ? 'er' : 'e';
-                        rankDisplay = `${rank}${rankSuffix} sur ${totalStudents}`;
+                    if (current.percentage === null) {
+                        rankDisplay = '—';   // student has no marks yet
+                    } else if (isNursery) {
+                        rankDisplay = `${rank}${rank === 1 ? 'er' : 'e'} sur ${totalStudents}`;
                     } else {
-                        let ordinal = rank;
                         let suffix = 'th';
-                        if (ordinal === 1) suffix = 'st';
-                        else if (ordinal === 2) suffix = 'nd';
-                        else if (ordinal === 3) suffix = 'rd';
-                        rankDisplay = `${ordinal}${suffix} of ${totalStudents}`;
+                        if (rank === 1) suffix = 'st';
+                        else if (rank === 2) suffix = 'nd';
+                        else if (rank === 3) suffix = 'rd';
+                        rankDisplay = `${rank}${suffix} of ${totalStudents}`;
                     }
                     break;
                 }
+
                 previousPercentage = current.percentage;
             }
 
@@ -13298,7 +13731,7 @@
             } else {
                 students = getRosterForClassAndYear(classId, getCurrentYearId());
             }
-            students.sort((a, b) => a.first_name.localeCompare(b.first_name) || a.last_name.localeCompare(b.last_name));
+            students = sortStudentsAlpha(students);
 
             const sel = document.getElementById('report-student');
             sel.innerHTML = '<option value="">— Select student —</option>' +
@@ -14251,7 +14684,7 @@
 
             const subjectSelect = document.getElementById('db-subject');
             subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>' +
-                subjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+                subjects.map(s => `<option value="${s.id}">${esc(s.name.slice(0, 30))}${s.name.length > 30 ? '…' : ''}</option>`).join('');
 
             document.getElementById('db-assessment').innerHTML = '<option value="">-- Select Assessment --</option>';
         }
@@ -14300,9 +14733,10 @@
 
                 if (!assessment) throw new Error('Assessment not found');
 
-                const students = isHoliday ?
+                let students = isHoliday ?
                     getCurrentStudents().filter(s => s.class_id === assessment.session_class_id) :
                     state.students.filter(s => s.class_id === assessment.class_id && s.status === 'Active');
+                students = sortStudentsAlpha(students);
 
                 const marks = isHoliday ?
                     (state.sessionMarks || []).filter(m => m.session_assessment_id == assessmentId) :
@@ -14723,8 +15157,17 @@
             const overallPercentage = annualTotalMax > 0 ? (annualTotalScore / annualTotalMax) * 100 : 0;
             const overallGrade = getGrade(overallPercentage);
 
-            const rank = await calculateStudentRankFull(parseInt(studentId), parseInt(classId), termsToProcess, allAssessments,
-                allMarks);
+            // calculateStudentRankFull needs EVERY student's marks for this class, not just the
+            // current student's — otherwise every other student scores 0, and the current student
+            // always lands at rank 1. So pass the full mark set.
+            const rankMarks = isHoliday
+                ? (state.sessionMarks || [])
+                : state.marks.filter(m => allAssessments.some(a => a.id === m.assessment_id));
+
+            const rank = await calculateStudentRankFull(
+                parseInt(studentId), parseInt(classId),
+                termsToProcess, allAssessments, rankMarks
+            );
 
             const schoolName = state.schoolSettings.school_name || 'ECOLE LA FONTAINE';
             const schoolLocation = state.schoolSettings.school_location || 'Rubavu, Rwanda';
@@ -14746,14 +15189,14 @@
                 reportTitle = isNursery ? 'RÉSULTATS DE FIN DE TRIMESTRE' : 'END OF TERM EXAMINATIONS RESULTS';
             }
 
-            const termLabel = isAnnual ?
-                (isNursery ? 'ANNÉE SCOLAIRE' : 'ACADEMIC YEAR') + ' ' + (state.schoolSettings.current_year ||
-                    '2025-2026') :
-                (termsToProcess[0]?.name || '') + ' - ' + (state.schoolSettings.current_year || '2025-2026');
+            const academicYearName = state.currentAcadYear?.name || state.schoolSettings.current_year || '';
+            const termLabel = isAnnual
+                ? (isNursery ? 'ANNÉE SCOLAIRE' : 'ACADEMIC YEAR') + ' ' + academicYearName
+                : (termsToProcess[0]?.name || '') + ' - ' + academicYearName;
 
             let gradeName = isNursery ? (cls.name.replace(/NURSERY/i, 'MATERNELLE').replace(/PRIMARY/i, 'PRIMAIRE')) : cls
                 .name;
-            gradeName = gradeName.replace(/\s+[A-Za-z]$/, '').trim();
+            gradeName = gradeName.replace(/\s*[A-Za-z]$/, '').trim();
 
             let className = isNursery ? (cls.name.replace(/NURSERY/i, 'MATERNELLE').replace(/PRIMARY/i, 'PRIMAIRE')) : cls
                 .name;
@@ -14892,7 +15335,7 @@
             reportHtml += summaryHtml;
 
             if (isAnnual) {
-                const nextClass = getNextClassForStudent(cls.name.replace(/\s+[A-Za-z]$/, '').trim());
+                const nextClass = getNextClassForStudent(cls.name.replace(/\s*[A-Za-z]$/, '').trim());
                 const promotionMessage = isNursery ?
                     (overallPercentage >= 50 ?
                         `🎉 FÉLICITATIONS! L'élève a obtenu une moyenne supérieure à 50% et est PROMU(E) en ${nextClass || 'la classe suivante'} pour l'année académique ${(state.currentAcadYear?.year_name || '2026-2027')}.` :
@@ -16767,7 +17210,7 @@
                 const sub = isHoliday ?
                     (state.sessionSubjects || []).find(s => s.id === a.session_subject_id) :
                     state.subjects.find(s => s.id === a.subject_id);
-                teacherMap.get(teacherId).push(`${cls?.name || '?'} - ${sub?.name || '?'}`);
+                teacherMap.get(teacherId).push(`${shortClassName(cls?.name)} - ${sub?.name || '?'}`);
             });
 
             const teachers = state.teachers.filter(t => t.role === 'teacher' && t.is_active !== false);
@@ -16786,8 +17229,8 @@
                                 <tbody>
                                     ${teachers.map(t => `
                                         <tr>
-                                            <td><strong>${esc(t.name)}</strong></td>
-                                            <td>${(teacherMap.get(t.id) || []).map(a => `<span class="badge badge-info" style="margin:2px">${esc(a)}</span>`).join('') || '—'}</td>
+                                            <td><strong>${truncateWithTitle(t.name, 20)}</strong></td>
+                                            <td>${(teacherMap.get(t.id) || []).map(a => `<span class="badge badge-info" style="margin:2px" title="${esc(a)}">${truncate(a, 26)}</span>`).join('') || '—'}</td>
                                             <td>
                                                 <button class="btn btn-sm btn-outline" onclick="editTeacherAssignments(${t.id})">✏️</button>
                                             </td>
@@ -16802,37 +17245,56 @@
 
         function openAssignmentModal() {
             const isHoliday = isHolidayMode();
-            const classes = isHoliday ? (state.sessionClasses || []) : getSortedClasses().filter(c => c.is_active !== false);
-            const subjects = isHoliday ? (state.sessionSubjects || []) : state.subjects.filter(s => s.is_active !== false);
-            const teachers = state.teachers.filter(t => t.role === 'teacher' && t.is_active !== false);
+            const classes = isHoliday
+                ? (state.sessionClasses || [])
+                : getSortedClasses().filter(c => c.is_active !== false);
+            const subjects = isHoliday
+                ? (state.sessionSubjects || [])
+                : state.subjects.filter(s => s.is_active !== false).sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
+            const teachers = state.teachers.filter(t => t.role === 'teacher' && t.is_active !== false)
+                .sort((a, b) => a.name.localeCompare(b.name));
 
             showModal(`
-                <div class="modal-overlay" id="assign-modal">
-                    <div class="modal modal-lg" onclick="event.stopPropagation()">
-                        <div class="modal-header">
-                            <h3>📌 Assign Subject to Teacher</h3>
-                            <button class="modal-close" onclick="closeModal('assign-modal')">✕</button>
+        <div class="modal-overlay" id="assign-modal">
+            <div class="modal modal-lg" onclick="event.stopPropagation()" style="max-width:560px">
+                <div class="modal-header">
+                    <h3>📌 Assign Subject to Teacher</h3>
+                    <button class="modal-close" onclick="closeModal('assign-modal')">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Teacher</label>
+                            <select id="assign-teacher" onchange="checkAssignmentAvailability()">
+                                <option value="">— Select teacher —</option>
+                                ${teachers.map(t => `<option value="${t.id}">${truncate(t.name, 28)}</option>`).join('')}
+                            </select>
                         </div>
-                        <div class="modal-body">
-                            <div class="form-grid">
-                                <div class="form-group"><label>Teacher</label>
-                                    <select id="assign-teacher">${teachers.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select>
-                                </div>
-                                <div class="form-group"><label>${isHoliday ? 'Holiday ' : ''}Class</label>
-                                    <select id="assign-class">${classes.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
-                                </div>
-                                <div class="form-group"><label>${isHoliday ? 'Holiday ' : ''}Subject</label>
-                                    <select id="assign-subject">${subjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>
-                                </div>
-                            </div>
+                        <div class="form-group">
+                            <label>${isHoliday ? 'Holiday ' : ''}Class</label>
+                            <select id="assign-class" onchange="checkAssignmentAvailability()">
+                                <option value="">— Select class —</option>
+                                ${classes.map(c => `<option value="${c.id}">${truncate(c.name, 22)}</option>`).join('')}
+                            </select>
                         </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-outline" onclick="closeModal('assign-modal')">Cancel</button>
-                            <button class="btn btn-primary" onclick="createAssignment()">Assign</button>
+                        <div class="form-group">
+                            <label>${isHoliday ? 'Holiday ' : ''}Subject</label>
+                            <select id="assign-subject" onchange="checkAssignmentAvailability()">
+                                <option value="">— Select subject —</option>
+                                ${subjects.map(s => `<option value="${s.id}">${truncate(s.name, 30)}</option>`).join('')}
+                            </select>
                         </div>
                     </div>
+
+                    <div id="assign-availability" style="margin-top:14px;min-height:24px"></div>
                 </div>
-            `);
+                <div class="modal-footer">
+                    <button class="btn btn-outline" onclick="closeModal('assign-modal')">Cancel</button>
+                    <button class="btn btn-primary" id="assign-submit-btn" onclick="createAssignment()">Assign</button>
+                </div>
+            </div>
+        </div>
+    `);
         }
 
         async function createAssignment() {
@@ -16847,116 +17309,278 @@
             }
 
             const table = isHoliday ? 'session_teacher_assignments' : 'teacher_assignments';
-            const filters = isHoliday ?
-                { teacher_id: teacherId, session_class_id: classId, session_subject_id: subjectId } :
-                { teacher_id: teacherId, class_id: classId, subject_id: subjectId };
+            const yearId = getCurrentYearId();
 
-            const existing = await getAll(table, filters);
-            if (existing.length > 0) { showToast('This assignment already exists', 'warning'); return; }
+            // ---- Duplicate check: same teacher + class + subject for this year ----
+            const dupFilters = isHoliday
+                ? { teacher_id: teacherId, session_class_id: classId, session_subject_id: subjectId }
+                : { teacher_id: teacherId, class_id: classId, subject_id: subjectId, academic_year_id: yearId };
 
-            const data = isHoliday ?
-                {
-                    teacher_id: teacherId, session_class_id: classId, session_subject_id: subjectId, created_at: new Date()
-                        .toISOString()
-                } :
-                {
-                    teacher_id: teacherId, class_id: classId, subject_id: subjectId, academic_year_id: getCurrentYearId(),
+            const existing = await getAll(table, dupFilters);
+            if (existing.length > 0) {
+                const t = getTeacherById(teacherId);
+                const c = getClassById(classId);
+                const s = getSubjectById(subjectId);
+                showToast(
+                    `⚠️ ${t?.name || 'This teacher'} is already assigned to teach ` +
+                    `${s?.name || 'this subject'} in ${c?.name || 'this class'} this year.`,
+                    'warning'
+                );
+                return;
+            }
+
+            // ---- Insert ----
+            const data = isHoliday
+                ? {
+                    teacher_id: teacherId,
+                    session_class_id: classId,
+                    session_subject_id: subjectId,
+                    created_at: new Date().toISOString()
+                }
+                : {
+                    teacher_id: teacherId,
+                    class_id: classId,
+                    subject_id: subjectId,
+                    academic_year_id: yearId,
                     created_at: new Date().toISOString()
                 };
 
-            await insert(table, data);
+            const result = await insert(table, data);
+            if (!result) {
+                showToast('Failed to create assignment', 'error');
+                return;
+            }
+
+            const t = getTeacherById(teacherId);
+            const c = getClassById(classId);
+            const s = getSubjectById(subjectId);
+            showToast(`✅ Assigned ${t?.name} to ${s?.name} in ${c?.name}`, 'success');
             closeModal('assign-modal');
-            showToast('✅ Assignment created', 'success');
             renderTeacherAssignments(document.getElementById('dynamic-content'));
         }
 
         async function editTeacherAssignments(teacherId) {
             const isHoliday = isHolidayMode();
             const table = isHoliday ? 'session_teacher_assignments' : 'teacher_assignments';
+
             const existing = isHoliday
                 ? await getAll(table, { teacher_id: teacherId })
                 : await getAll(table, { teacher_id: teacherId, academic_year_id: getCurrentYearId() });
 
-            const existingSet = new Set(existing.map(a => isHoliday ?
-                `${a.session_class_id}|${a.session_subject_id}` :
-                `${a.class_id}|${a.subject_id}`
+            const existingSet = new Set(existing.map(a => isHoliday
+                ? `${a.session_class_id}|${a.session_subject_id}`
+                : `${a.class_id}|${a.subject_id}`
             ));
 
             const teacher = state.teachers.find(t => t.id === teacherId);
-            const classes = isHoliday ? (state.sessionClasses || []) : getSortedClasses().filter(c => c.is_active !== false);
-            const subjects = isHoliday ? (state.sessionSubjects || []) : state.subjects.filter(s => s.is_active !== false);
+            const classes = isHoliday
+                ? (state.sessionClasses || [])
+                : getSortedClasses().filter(c => c.is_active !== false);
+            const subjects = isHoliday
+                ? (state.sessionSubjects || [])
+                : state.subjects.filter(s => s.is_active !== false).sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
+
+            // Count how many are already assigned for this teacher
+            const totalPossible = classes.length * subjects.length;
+            const assignedCount = existingSet.size;
 
             showModal(`
-                <div class="modal-overlay" id="edit-assign-modal">
-                    <div class="modal modal-lg" onclick="event.stopPropagation()">
-                        <div class="modal-header">
-                            <h3>✏️ Assignments for ${esc(teacher?.name || 'Teacher')}</h3>
-                            <button class="modal-close" onclick="closeModal('edit-assign-modal')">✕</button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="table-wrapper">
-                                <table class="data-table">
-                                    <thead><tr><th>Class</th>${subjects.map(s => `<th>${esc(s.name)}</th>`).join('')}</tr></thead>
-                                    <tbody>
-                                        ${classes.map(c => `
-                                            <tr>
-                                                <td><strong>${esc(c.name)}</strong></td>
-                                                ${subjects.map(s => `
-                                                    <td style="text-align:center">
-                                                        <input type="checkbox" class="assign-chk" data-class="${c.id}" data-subject="${s.id}" ${existingSet.has(`${c.id}|${s.id}`) ? 'checked' : ''}>
-                                                    </td>
-                                                `).join('')}
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-outline" onclick="closeModal('edit-assign-modal')">Cancel</button>
-                            <button class="btn btn-primary" onclick="saveTeacherAssignments(${teacherId})">Save</button>
-                        </div>
+        <div class="modal-overlay" id="edit-assign-modal">
+            <div class="modal modal-lg" onclick="event.stopPropagation()" style="max-width:900px">
+                <div class="modal-header">
+                    <h3>✏️ Assignments for ${esc(teacher?.name || 'Teacher')}</h3>
+                    <button class="modal-close" onclick="closeModal('edit-assign-modal')">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info" style="margin-bottom:12px;font-size:.82rem">
+                        <strong>${assignedCount}</strong> of <strong>${totalPossible}</strong> possible class-subject pairs already assigned.
+                        Already-saved assignments appear <strong>checked and greyed out</strong>.
+                        Tick a new box to add a new assignment. Saving will not remove existing ones.
+                    </div>
+
+                    <div class="table-wrapper" style="max-height:60vh;overflow:auto">
+                        <table class="data-table" style="font-size:.78rem">
+                            <thead>
+                                <tr>
+                                    <th style="position:sticky;left:0;background:var(--bg-tertiary);z-index:2;min-width:110px">Class</th>
+                                    ${subjects.map(s => `
+                                        <th style="text-align:center;white-space:nowrap" title="${esc(s.name)}">
+                                            ${truncate(s.name, 9)}
+                                        </th>
+                                    `).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${classes.map(c => `
+                                    <tr>
+                                        <td style="position:sticky;left:0;background:var(--bg-secondary);font-weight:600;z-index:1">
+                                            ${truncate(c.name, 16)}
+                                        </td>
+                                        ${subjects.map(s => {
+                const key = `${c.id}|${s.id}`;
+                const alreadyAssigned = existingSet.has(key);
+                return `
+                                                <td style="text-align:center;vertical-align:middle">
+                                                    <input type="checkbox"
+       class="assign-chk"
+       data-class="${c.id}"
+       data-subject="${s.id}"
+       data-existing="${alreadyAssigned}"
+       ${alreadyAssigned ? 'checked' : ''}
+       title="${alreadyAssigned ? 'Already assigned — double-click to remove' : 'Click to assign'}"
+       style="${alreadyAssigned ? 'cursor:pointer;opacity:.55;' : ''}"
+       ondblclick="${alreadyAssigned ? `removeAssignment(${teacherId}, ${c.id}, ${s.id})` : ''}">
+                                                </td>
+                                            `;
+            }).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            `);
+                <div class="modal-footer">
+                    <button class="btn btn-outline" onclick="closeModal('edit-assign-modal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveTeacherAssignments(${teacherId})">💾 Save New Assignments</button>
+                </div>
+            </div>
+        </div>
+    `);
+        }
+
+        async function removeAssignment(teacherId, classId, subjectId) {
+            if (!await confirmDialog('Remove this assignment? The teacher will no longer see this class-subject combination.')) return;
+            const isHoliday = isHolidayMode();
+            const table = isHoliday ? 'session_teacher_assignments' : 'teacher_assignments';
+            const filter = isHoliday
+                ? `teacher_id=eq.${teacherId}&session_class_id=eq.${classId}&session_subject_id=eq.${subjectId}`
+                : `teacher_id=eq.${teacherId}&class_id=eq.${classId}&subject_id=eq.${subjectId}&academic_year_id=eq.${getCurrentYearId()}`;
+            await removeWhere(table, filter);
+            showToast('✅ Assignment removed', 'success');
+            closeModal('edit-assign-modal');
+            editTeacherAssignments(teacherId); // reopen with updated set
+        }
+
+        async function checkAssignmentAvailability() {
+            const box = document.getElementById('assign-availability');
+            const btn = document.getElementById('assign-submit-btn');
+            if (!box || !btn) return;
+
+            const teacherId = parseInt(document.getElementById('assign-teacher')?.value);
+            const classId = parseInt(document.getElementById('assign-class')?.value);
+            const subjectId = parseInt(document.getElementById('assign-subject')?.value);
+            const isHoliday = isHolidayMode();
+            const table = isHoliday ? 'session_teacher_assignments' : 'teacher_assignments';
+            const yearId = getCurrentYearId();
+
+            if (!teacherId || !classId || !subjectId) {
+                box.innerHTML = '';
+                btn.disabled = false;
+                btn.textContent = 'Assign';
+                return;
+            }
+
+            btn.disabled = true;
+            box.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem">⏳ Checking…</span>';
+
+            const dupFilters = isHoliday
+                ? { teacher_id: teacherId, session_class_id: classId, session_subject_id: subjectId }
+                : { teacher_id: teacherId, class_id: classId, subject_id: subjectId, academic_year_id: yearId };
+
+            const existing = await getAll(table, dupFilters);
+
+            const teacher = getTeacherById(teacherId);
+            const cls = getClassById(classId);
+            const subj = getSubjectById(subjectId);
+            const label = `${teacher?.name || 'Teacher'} · ${subj?.name || 'Subject'} · ${cls?.name || 'Class'}`;
+
+            if (existing.length > 0) {
+                box.innerHTML = `
+            <div class="alert alert-warning" style="margin:0;font-size:.85rem">
+                ⚠️ <strong>Already assigned.</strong><br>
+                ${truncate(teacher?.name || '', 40)} is already assigned to
+                ${truncate(subj?.name || '', 30)} in ${cls?.name || ''}.
+                Nothing will be inserted.
+            </div>`;
+                btn.disabled = true;
+                btn.textContent = 'Already assigned';
+                return;
+            }
+
+            // Optional — check if this teacher already teaches another class in the same
+            // timetabled period. Only meaningful once slots exist for the current year.
+            let conflictMsg = '';
+            try {
+                const slots = await getAll('timetable_slots', { academic_year_id: yearId, teacher_id: teacherId });
+                if (slots.length > 0) {
+                    // Just informational — we don't know which period this new assignment will occupy,
+                    // so we can only warn if the class already has slots on the same day/time as
+                    // slots this teacher already has elsewhere. This is a heuristic.
+                    const classSlots = await getAll('timetable_slots', { academic_year_id: yearId, class_id: classId });
+                    const teacherSlotKeys = new Set(slots.map(s => `${s.day}|${s.time_slot}`));
+                    const overlapping = classSlots.filter(cs => teacherSlotKeys.has(`${cs.day}|${cs.time_slot}`) && cs.subject_id !== subjectId);
+                    if (overlapping.length > 0) {
+                        conflictMsg = `
+                    <div style="font-size:.75rem;color:var(--text-muted);margin-top:6px">
+                        ℹ️ Note: this teacher already has ${overlapping.length} other period(s)
+                        timetabled for this class. Timetable editing may need review.
+                    </div>`;
+                    }
+                }
+            } catch (e) { /* non-fatal */ }
+
+            box.innerHTML = `
+        <div class="alert alert-success" style="margin:0;font-size:.85rem">
+            ✅ <strong>Available.</strong><br>
+            ${label} — ready to assign.
+            ${conflictMsg}
+        </div>`;
+            btn.disabled = false;
+            btn.textContent = 'Assign';
         }
 
         async function saveTeacherAssignments(teacherId) {
             const isHoliday = isHolidayMode();
             const table = isHoliday ? 'session_teacher_assignments' : 'teacher_assignments';
 
-            const selected = [];
+            // Collect only boxes that are checked AND not marked as already-existing
+            const toInsert = [];
             document.querySelectorAll('.assign-chk:checked').forEach(cb => {
-                selected.push({
+                if (cb.dataset.existing === 'true') return; // skip already-saved
+                toInsert.push({
                     class_id: parseInt(cb.dataset.class),
                     subject_id: parseInt(cb.dataset.subject)
                 });
             });
 
-            if (isHoliday) {
-                await removeWhere(table, `teacher_id=eq.${teacherId}`);
-            } else {
-                // Only clear THIS teacher's assignments for the CURRENT year — leave other
-                // years' assignment history untouched.
-                const toRemove = await getAll(table, { teacher_id: teacherId, academic_year_id: getCurrentYearId() });
-                for (const rec of toRemove) await remove(table, rec.id);
+            if (toInsert.length === 0) {
+                showToast('No new assignments to add', 'info');
+                closeModal('edit-assign-modal');
+                return;
             }
 
-            for (const s of selected) {
-                const data = isHoliday ?
-                    {
-                        teacher_id: teacherId, session_class_id: s.class_id, session_subject_id: s.subject_id,
+            let inserted = 0;
+            for (const s of toInsert) {
+                const data = isHoliday
+                    ? {
+                        teacher_id: teacherId,
+                        session_class_id: s.class_id,
+                        session_subject_id: s.subject_id,
                         created_at: new Date().toISOString()
-                    } :
-                    {
-                        teacher_id: teacherId, class_id: s.class_id, subject_id: s.subject_id,
-                        academic_year_id: getCurrentYearId(), created_at: new Date().toISOString()
+                    }
+                    : {
+                        teacher_id: teacherId,
+                        class_id: s.class_id,
+                        subject_id: s.subject_id,
+                        academic_year_id: getCurrentYearId(),
+                        created_at: new Date().toISOString()
                     };
-                await insert(table, data);
+                const result = await insert(table, data);
+                if (result) inserted++;
             }
 
             closeModal('edit-assign-modal');
-            showToast('✅ Assignments saved', 'success');
+            showToast(`✅ Added ${inserted} new assignment${inserted !== 1 ? 's' : ''}`, 'success');
             renderTeacherAssignments(document.getElementById('dynamic-content'));
         }
 
@@ -17060,6 +17684,1249 @@
             });
             exportToExcel(data, 'Teacher_Performance');
             showToast('✅ Teacher performance exported', 'success');
+        }
+
+        // ==================================================================================
+        // ATTENDANCE MODULE (v7.1)
+        // ----------------------------------------------------------------------------------
+        // Business rules enforced:
+        //   - Status ∈ {Present, Absent} ONLY (no Late, Excused, Sick, Half-day...)
+        //   - Uniqueness: student_id + attendance_date + academic_year_id + term_id
+        //   - Teacher can only see/edit their own class (enforced via attCanTakeAttendance
+        //     + RLS policies in the DB)
+        //   - Admin can see/take attendance for all classes
+        //   - All writes go to attendance_records + attendance_audit_log (new tables)
+        // ==================================================================================
+
+        const ATT_STATUS = { PRESENT: 'Present', ABSENT: 'Absent' };
+
+        // ----------------------------------------------------------------------------------
+        // Helpers — declared FIRST so anything below can call them, in any order.
+        // (Function declarations are hoisted, but keeping them here makes the file
+        //  easy to reason about top-to-bottom.)
+        // ----------------------------------------------------------------------------------
+
+        // Today's date as YYYY-MM-DD in the school's local timezone (Africa/Kigali).
+        // Never trust `new Date().toISOString().split('T')[0]` — that's UTC and can shift
+        // the day for users west of UTC.
+        function attTodayLocal() {
+            const now = new Date();
+            const tz = 'Africa/Kigali';
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit'
+            }).formatToParts(now);
+            const get = k => parts.find(p => p.type === k)?.value;
+            return `${get('year')}-${get('month')}-${get('day')}`;
+        }
+
+        // Validates a YYYY-MM-DD string for attendance. Rejects:
+        //   - anything that isn't a well-formed YYYY-MM-DD
+        //   - future dates
+        //   - Saturday / Sunday
+        // Returns { ok: true } or { ok: false, reason: '...' }.
+        function attIsValidAttendanceDate(dateStr) {
+            if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                return { ok: false, reason: 'Please pick a valid date.' };
+            }
+            if (dateStr > attTodayLocal()) {
+                return { ok: false, reason: 'Attendance cannot be taken for a future date.' };
+            }
+            // Parse as local midnight so getDay() isn't shifted by the UTC timezone.
+            const d = new Date(dateStr + 'T00:00:00');
+            const dow = d.getDay(); // 0 = Sunday, 6 = Saturday
+            if (dow === 0 || dow === 6) {
+                return { ok: false, reason: 'Weekends have no school. Attendance is Mon–Fri only.' };
+            }
+            return { ok: true };
+        }
+
+        // Sane initial date for the entry screen: today if it's a weekday,
+        // otherwise the most recent Friday.
+        function attDefaultDate() {
+            const t = attTodayLocal();
+            const d = new Date(t + 'T00:00:00');
+            const dow = d.getDay();
+            if (dow === 0) d.setDate(d.getDate() - 2);      // Sunday -> Friday
+            else if (dow === 6) d.setDate(d.getDate() - 1); // Saturday -> Friday
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${dd}`;
+        }
+
+        // Returns the class(es) the currently authenticated teacher is allowed to take
+        // attendance for. For admin, returns null (meaning "all classes").
+        // For teachers, uses the homeroom (class_teacher_id) relationship — the same
+        // source of truth used by the Class Register page.
+        function attGetTeacherClasses() {
+            const user = state.currentUser;
+            if (!user) return [];
+            if (user.role === 'admin') return null;
+            if (user.role !== 'teacher') return [];
+
+            const isHoliday = isHolidayMode();
+            const ids = new Set();
+
+            if (isHoliday) {
+                (state.sessionTeacherAssignments || [])
+                    .filter(a => a.teacher_id == user.id)
+                    .forEach(a => ids.add(a.session_class_id));
+                (state.sessionClasses || [])
+                    .filter(c => c.class_teacher_id == user.id)
+                    .forEach(c => ids.add(c.id));
+                return [...ids];
+            }
+
+            // Homeroom-only: same rule the Class Register page uses.
+            (state.classes || [])
+                .filter(c => c.class_teacher_id == user.id && c.is_active !== false)
+                .forEach(c => ids.add(c.id));
+
+            return [...ids];
+        }
+
+        // Central can-edit check used by the UI. (Also enforced at the DB via RLS.)
+        function attCanTakeAttendance(classId) {
+            const user = state.currentUser;
+            if (!user) return false;
+            if (user.role === 'admin') return true;
+            if (user.role !== 'teacher') return false;
+            const allowed = attGetTeacherClasses();
+            if (!Array.isArray(allowed)) return false;
+            return allowed.some(id => id == classId); // loose == handles string/number
+        }
+
+        // ----------------------------------------------------------------------------------
+        // Shared state for the entry screen.
+        // ----------------------------------------------------------------------------------
+        const _attState = {
+            classId: null,
+            date: attDefaultDate(),
+            roster: [],     // [{ student, status: 'Present'|'Absent'|null, recordId }]
+            dirty: false,
+            saving: false,
+        };
+
+        // ==================================================================================
+        // 1) TEACHER / ADMIN — TAKE ATTENDANCE
+        // ==================================================================================
+        async function renderAttendanceEntry(el) {
+            await ensureStateLoaded();
+            const user = state.currentUser;
+            if (!user) { el.innerHTML = `<div class="alert alert-danger">Not authenticated.</div>`; return; }
+
+            const isHoliday = isHolidayMode();
+            const allClasses = isHoliday
+                ? (state.sessionClasses || [])
+                : (state.classes || []).filter(c => c.is_active !== false);
+
+            // ---- Restrict classes for teachers (do NOT trust the browser) ----
+            let classes;
+            let headerNote = '';
+            if (user.role === 'admin') {
+                classes = allClasses;
+            } else if (user.role === 'teacher') {
+                const allowed = attGetTeacherClasses();
+                if (!Array.isArray(allowed) || allowed.length === 0) {
+                    el.innerHTML = `
+                        <div class="alert alert-warning" style="margin:20px">
+                            <strong>No class assigned to you yet.</strong><br>
+                            Ask the administrator to set you as the class teacher of a class in
+                            <em>Settings → Class Management</em>.
+                        </div>`;
+                    return;
+                }
+                classes = allClasses.filter(c => allowed.includes(c.id));
+                headerNote = `<span class="att-perm-note">🔒 You can only take attendance for your assigned class${classes.length > 1 ? 'es' : ''}.</span>`;
+            } else {
+                el.innerHTML = `<div class="alert alert-danger" style="margin:20px">Your role (${esc(user.role)}) is not permitted to take attendance.</div>`;
+                return;
+            }
+
+            if (classes.length === 0) {
+                el.innerHTML = `<div class="alert alert-warning" style="margin:20px">No classes available.</div>`;
+                return;
+            }
+
+            // Preserve previous selection if it's still valid, else use the first class.
+            const prevClass = _attState.classId;
+            const initialClassId = classes.find(c => c.id == prevClass)?.id || classes[0].id;
+            _attState.classId = initialClassId;
+
+            // If the current cached date is invalid (weekend / future), reset it.
+            if (!attIsValidAttendanceDate(_attState.date).ok) {
+                _attState.date = attDefaultDate();
+            }
+
+            const acadYear = state.currentAcadYear;
+            const term = state.currentTerm;
+
+            el.innerHTML = `
+                <div class="att-header-card">
+                    <div>
+                        <h2 style="margin:0 0 6px;font-size:1.2rem">🗓️ Attendance</h2>
+                        <div class="att-header-meta">
+                            <div><span class="lbl">Teacher</span><span class="val">${esc(user.name)}</span></div>
+                            <div><span class="lbl">Class</span>
+                                <select id="att-class" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border-medium);background:var(--bg-secondary);color:var(--text-primary);font-weight:700">
+                                    ${classes.map(c => `<option value="${c.id}" ${c.id == initialClassId ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div><span class="lbl">Academic Year</span><span class="val">${esc(acadYear?.name || acadYear?.year_name || '—')}</span></div>
+                            <div><span class="lbl">Term</span><span class="val">${esc(term?.name || '—')}</span></div>
+                        </div>
+                        ${headerNote}
+                    </div>
+                    <div class="att-date-picker">
+                        <label style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">Date</label>
+                        <input type="date" id="att-date" value="${_attState.date}" max="${attTodayLocal()}">
+                    </div>
+                </div>
+
+                <div class="att-summary" id="att-summary">
+                    <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value" id="att-sum-total">0</div><div class="stat-label">Students</div></div>
+                    <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value" id="att-sum-present" style="color:var(--success)">0</div><div class="stat-label">Present</div></div>
+                    <div class="stat-card"><div class="stat-icon">❌</div><div class="stat-value" id="att-sum-absent" style="color:var(--danger)">0</div><div class="stat-label">Absent</div></div>
+                    <div class="stat-card"><div class="stat-icon">❔</div><div class="stat-value" id="att-sum-unmarked">0</div><div class="stat-label">Unmarked</div></div>
+                </div>
+
+                <div class="att-toolbar">
+                    <button class="btn btn-success" onclick="attMarkAll('Present')">✅ Mark All Present</button>
+                    <button class="btn btn-danger"  onclick="attMarkAll('Absent')">❌ Mark All Absent</button>
+                    <button class="btn btn-outline" onclick="attClear()">🗑️ Reset</button>
+                    <span style="flex:1"></span>
+                    <span id="att-unsaved-note" class="att-unsaved"></span>
+                </div>
+
+                <div id="att-rows"><div class="loading-container"><div class="spinner"></div><p>Loading roster…</p></div></div>
+
+                <div class="att-sticky-save">
+                    <button class="btn btn-lg btn-primary" id="att-save-btn" onclick="attSave()">💾 Save Attendance</button>
+                    <button class="btn btn-outline" onclick="attReload()">🔄 Reload</button>
+                </div>
+            `;
+
+            document.getElementById('att-class')?.addEventListener('change', e => {
+                _attState.classId = e.target.value;
+                _attState.dirty = false;
+                attLoadRoster();
+            });
+            document.getElementById('att-date')?.addEventListener('change', e => {
+                const picked = e.target.value || attTodayLocal();
+                const check = attIsValidAttendanceDate(picked);
+                if (!check.ok) {
+                    showToast(check.reason, 'warning');
+                    e.target.value = _attState.date; // revert to last valid value
+                    return;
+                }
+                _attState.date = picked;
+                _attState.dirty = false;
+                attLoadRoster();
+            });
+
+            await attLoadRoster();
+        }
+
+        async function attLoadRoster() {
+            const classId = _attState.classId;
+            const date = _attState.date;
+            const rowsEl = document.getElementById('att-rows');
+            if (!rowsEl) return;
+
+            // ---- Authorization gate ----
+            if (!attCanTakeAttendance(classId)) {
+                rowsEl.innerHTML = `<div class="alert alert-danger">🚫 You are not authorized to take attendance for this class.</div>`;
+                return;
+            }
+
+            // ---- Date gate (weekend / future) ----
+            const dateCheck = attIsValidAttendanceDate(date);
+            if (!dateCheck.ok) {
+                rowsEl.innerHTML = `<div class="alert alert-warning">⚠️ ${esc(dateCheck.reason)}</div>`;
+                _attState.roster = [];
+                attUpdateSummary();
+                return;
+            }
+
+            rowsEl.innerHTML = `<div class="loading-container"><div class="spinner"></div><p>Loading roster…</p></div>`;
+
+            try {
+                const isHoliday = isHolidayMode();
+
+                // Build the roster from either holiday enrollments or the regular class.
+                let students;
+                if (isHoliday) {
+                    const enrolledIds = (state.sessionEnrollments || [])
+                        .filter(e => e.session_class_id == classId && e.is_active !== false)
+                        .map(e => e.student_id);
+                    students = (state.students || []).filter(s => enrolledIds.includes(s.id) && s.status === 'Active');
+                } else {
+                    students = (state.students || []).filter(s => s.class_id == classId && s.status === 'Active');
+                }
+                students = sortStudentsAlpha ? sortStudentsAlpha(students) : students;
+
+                if (students.length === 0) {
+                    rowsEl.innerHTML = `<div class="alert alert-info">No active students in this class.</div>`;
+                    _attState.roster = [];
+                    attUpdateSummary();
+                    return;
+                }
+
+                // Fetch existing attendance for this class/date.
+                const existing = await getAll('attendance_records', {
+                    class_id: classId,
+                    attendance_date: date,
+                });
+
+                const byStudent = new Map();
+                (existing || []).forEach(r => byStudent.set(String(r.student_id), r));
+
+                _attState.roster = students.map(s => {
+                    const rec = byStudent.get(String(s.id));
+                    return {
+                        student: s,
+                        status: rec ? rec.status : null,
+                        recordId: rec ? rec.id : null,
+                    };
+                });
+                _attState.dirty = false;
+                attRenderRows();
+                attUpdateSummary();
+
+                const noteEl = document.getElementById('att-unsaved-note');
+                if (noteEl) noteEl.textContent = '';
+            } catch (err) {
+                console.error('[attendance] load failed', err);
+                rowsEl.innerHTML = `<div class="alert alert-danger">Failed to load roster: ${esc(err.message || err)}</div>`;
+            }
+        }
+
+        function attRenderRows() {
+            const rowsEl = document.getElementById('att-rows');
+            if (!rowsEl) return;
+            const rows = _attState.roster;
+            if (!rows.length) { rowsEl.innerHTML = ''; return; }
+
+            rowsEl.innerHTML = `<div class="att-grid">${rows.map((r, i) => {
+                const s = r.student;
+                const name = `${s.first_name || ''} ${s.last_name || ''}`.trim();
+                const code = s.student_code ? `<span class="code">(${esc(s.student_code)})</span>` : '';
+                const isAbsent = r.status === ATT_STATUS.ABSENT;
+                return `
+                        <div class="att-row ${isAbsent ? 'absent' : ''}" data-idx="${i}">
+                            <div class="att-name">
+                                <span class="idx">${i + 1}</span>
+                                <span>${esc(name)}</span>${code}
+                            </div>
+                            <div class="att-toggle" role="radiogroup" aria-label="Attendance for ${esc(name)}">
+                                <button type="button"
+                                        class="present ${r.status === ATT_STATUS.PRESENT ? 'active' : ''}"
+                                        onclick="attSetStatus(${i}, 'Present')">✅ Present</button>
+                                <button type="button"
+                                        class="absent ${r.status === ATT_STATUS.ABSENT ? 'active' : ''}"
+                                        onclick="attSetStatus(${i}, 'Absent')">❌ Absent</button>
+                            </div>
+                        </div>`;
+            }).join('')
+                }</div>`;
+        }
+
+        function attSetStatus(idx, status) {
+            if (status !== ATT_STATUS.PRESENT && status !== ATT_STATUS.ABSENT) return;
+            const row = _attState.roster[idx];
+            if (!row) return;
+            if (row.status === status) return;
+            row.status = status;
+            _attState.dirty = true;
+
+            const rowEl = document.querySelector(`.att-row[data-idx="${idx}"]`);
+            if (rowEl) {
+                rowEl.classList.toggle('absent', status === ATT_STATUS.ABSENT);
+                rowEl.querySelector('.present')?.classList.toggle('active', status === ATT_STATUS.PRESENT);
+                rowEl.querySelector('.absent')?.classList.toggle('active', status === ATT_STATUS.ABSENT);
+            }
+            attUpdateSummary();
+            const noteEl = document.getElementById('att-unsaved-note');
+            if (noteEl) noteEl.textContent = '● Unsaved changes';
+        }
+
+        function attMarkAll(status) {
+            if (status !== ATT_STATUS.PRESENT && status !== ATT_STATUS.ABSENT) return;
+            _attState.roster.forEach(r => { r.status = status; });
+            _attState.dirty = true;
+            attRenderRows();
+            attUpdateSummary();
+            const noteEl = document.getElementById('att-unsaved-note');
+            if (noteEl) noteEl.textContent = '● Unsaved changes';
+        }
+
+        function attClear() {
+            _attState.roster.forEach(r => { r.status = null; });
+            _attState.dirty = true;
+            attRenderRows();
+            attUpdateSummary();
+            const noteEl = document.getElementById('att-unsaved-note');
+            if (noteEl) noteEl.textContent = '● Unsaved changes';
+        }
+
+        function attUpdateSummary() {
+            const rows = _attState.roster;
+            const total = rows.length;
+            const present = rows.filter(r => r.status === ATT_STATUS.PRESENT).length;
+            const absent = rows.filter(r => r.status === ATT_STATUS.ABSENT).length;
+            const unmarked = total - present - absent;
+            const $ = id => document.getElementById(id);
+            if ($('att-sum-total')) $('att-sum-total').textContent = total;
+            if ($('att-sum-present')) $('att-sum-present').textContent = present;
+            if ($('att-sum-absent')) $('att-sum-absent').textContent = absent;
+            if ($('att-sum-unmarked')) $('att-sum-unmarked').textContent = unmarked;
+        }
+
+        async function attSave() {
+            if (_attState.saving) return;
+            const user = state.currentUser;
+            const classId = _attState.classId;
+            const date = _attState.date;
+
+            // ---- Date gate ----
+            const dateCheck = attIsValidAttendanceDate(date);
+            if (!dateCheck.ok) { showToast(dateCheck.reason, 'warning'); return; }
+
+            // ---- Authorization gate ----
+            if (!attCanTakeAttendance(classId)) {
+                showToast('You are not authorized for this class', 'error');
+                return;
+            }
+
+            // ---- Completeness gate ----
+            const unmarked = _attState.roster.filter(r => !r.status);
+            if (unmarked.length > 0) {
+                showToast(`${unmarked.length} student(s) still unmarked.`, 'warning');
+                return;
+            }
+            if (_attState.roster.length === 0) {
+                showToast('Nothing to save.', 'warning');
+                return;
+            }
+
+            // ---- Duplicate / overwrite warning ----------------------------------------
+            // Before writing, check whether this class already has attendance for this
+            // date. If it does, and the current user is a teacher (not admin), ask for
+            // confirmation — we don't want to silently clobber another teacher's entries.
+            try {
+                const existingRows = await getAll('attendance_records', {
+                    class_id: classId,
+                    attendance_date: date,
+                });
+                if (existingRows && existingRows.length > 0) {
+                    // Was it the same teacher who saved it? If so, treat as a normal edit.
+                    const sameTeacher = existingRows.every(r => r.teacher_id == user.id);
+                    const isAdmin = user.role === 'admin';
+
+                    if (!sameTeacher && !isAdmin) {
+                        const otherTeacherId = existingRows.find(r => r.teacher_id)?.teacher_id;
+                        const otherTeacher = (state.teachers || []).find(t => t.id == otherTeacherId);
+                        const who = otherTeacher?.name || 'another user';
+                        const when = existingRows[0].updated_at
+                            ? new Date(existingRows[0].updated_at).toLocaleString()
+                            : 'earlier';
+
+                        const ok = await confirmDialog(
+                            `Attendance for this class was already recorded by ${who} (${when}). ` +
+                            `Saving now will overwrite their entries. Continue?`
+                        );
+                        if (!ok) return;
+                    } else if (!sameTeacher && isAdmin) {
+                        // Admins are allowed to correct, but it's still useful to know.
+                        const otherTeacherId = existingRows.find(r => r.teacher_id)?.teacher_id;
+                        const otherTeacher = (state.teachers || []).find(t => t.id == otherTeacherId);
+                        if (otherTeacher) {
+                            showToast(
+                                `ℹ️ Overwriting attendance previously saved by ${otherTeacher.name}. ` +
+                                `The change will be recorded in the audit log.`,
+                                'info', 4500
+                            );
+                        }
+                    }
+                }
+            } catch (e) {
+                // Non-fatal — proceed with the save even if the pre-check failed.
+                console.warn('[attendance] duplicate pre-check failed', e);
+            }
+
+            const saveBtn = document.getElementById('att-save-btn');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="spinner-sm"></span> Saving…';
+            }
+            _attState.saving = true;
+
+            try {
+                const acadYearId = state.currentAcadYear?.id || null;
+                const termId = state.currentTerm?.id || null;
+
+                // teacher_id — for a teacher it's their own id. For admin, we try to find
+                // the homeroom teacher of that class; otherwise we leave it null.
+                let teacherId = null;
+                if (user.role === 'teacher') {
+                    teacherId = user.id;
+                } else if (user.role === 'admin') {
+                    const cls = (state.classes || []).find(c => c.id == classId);
+                    teacherId = cls?.class_teacher_id || null;
+                }
+
+                const nowIso = new Date().toISOString();
+                const toUpsert = _attState.roster.map(r => ({
+                    student_id: r.student.id,
+                    class_id: classId,
+                    teacher_id: teacherId,
+                    attendance_date: date,
+                    academic_year_id: acadYearId,
+                    term_id: termId,
+                    status: r.status,
+                    updated_at: nowIso,
+                    updated_by: user.id,
+                    created_by: user.id,
+                }));
+
+                const CHUNK = 100;
+                for (let i = 0; i < toUpsert.length; i += CHUNK) {
+                    const chunk = toUpsert.slice(i, i + CHUNK);
+                    const res = await apiRequest(
+                        'attendance_records?on_conflict=student_id,attendance_date,academic_year_id,term_id',
+                        'POST',
+                        chunk
+                    );
+                    if (!res.success) throw new Error(res.error || 'Save failed');
+                }
+
+                _attState.dirty = false;
+                await logActivity(
+                    user.id, user.role,
+                    `Saved attendance for ${_attState.roster.length} students on ${date}`,
+                    'attendance', classId,
+                    { class_id: classId, date, count: _attState.roster.length }
+                );
+
+                showToast(`✅ Attendance saved for ${_attState.roster.length} students`, 'success');
+                const noteEl = document.getElementById('att-unsaved-note');
+                if (noteEl) noteEl.textContent = '✓ Saved';
+
+                setTimeout(() => attLoadRoster(), 300);
+            } catch (err) {
+                console.error('[attendance] save failed', err);
+                const msg = String(err.message || err);
+                if (/not assigned to class/i.test(msg)) {
+                    showToast('🚫 This teacher is not assigned to that class.', 'error', 5000);
+                } else if (/future date/i.test(msg)) {
+                    showToast('🚫 Attendance date cannot be in the future.', 'error', 5000);
+                } else if (/duplicate|unique/i.test(msg)) {
+                    showToast('Duplicate attendance detected. Reloading…', 'warning');
+                    attLoadRoster();
+                } else if (/invalid input value for enum/i.test(msg)) {
+                    showToast('Invalid status. Only Present or Absent are allowed.', 'error');
+                } else {
+                    showToast('Save failed: ' + msg, 'error', 6000);
+                }
+            } finally {
+                _attState.saving = false;
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '💾 Save Attendance';
+                }
+            }
+        }
+
+        async function attReload() {
+            if (_attState.dirty) {
+                if (!await confirmDialog('Discard unsaved changes and reload?')) return;
+            }
+            await attLoadRoster();
+        }
+
+        // Warn on tab close if unsaved.
+        window.addEventListener('beforeunload', (e) => {
+            if (_attState.dirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        // ==================================================================================
+        // 2) ADMIN — DASHBOARD (today's snapshot across all classes)
+        // ==================================================================================
+        async function renderAttendanceDashboard(el) {
+            await ensureStateLoaded();
+            const user = state.currentUser;
+            if (!user || user.role !== 'admin') {
+                el.innerHTML = `<div class="alert alert-danger" style="margin:20px">Access denied. Admin only.</div>`;
+                return;
+            }
+
+            const date = attTodayLocal();
+            el.innerHTML = `
+                <div class="att-header-card">
+                    <div>
+                        <h2 style="margin:0 0 6px;font-size:1.2rem">📊 Attendance Dashboard</h2>
+                        <div class="att-header-meta">
+                            <div><span class="lbl">Date</span><span class="val">${fmtDate(date)}</span></div>
+                            <div><span class="lbl">Academic Year</span><span class="val">${esc(state.currentAcadYear?.name || '—')}</span></div>
+                            <div><span class="lbl">Term</span><span class="val">${esc(state.currentTerm?.name || '—')}</span></div>
+                        </div>
+                    </div>
+                    <div class="att-date-picker">
+                        <input type="date" id="attd-date" value="${date}" max="${attTodayLocal()}">
+                    </div>
+                </div>
+                <div id="attd-body"><div class="loading-container"><div class="spinner"></div><p>Loading…</p></div></div>
+            `;
+            document.getElementById('attd-date')?.addEventListener('change', e => attDashboardLoad(e.target.value));
+            await attDashboardLoad(date);
+        }
+
+        async function attDashboardLoad(date) {
+            const body = document.getElementById('attd-body');
+            if (!body) return;
+            body.innerHTML = `<div class="loading-container"><div class="spinner"></div><p>Loading…</p></div>`;
+
+            try {
+                const isHoliday = isHolidayMode();
+                const classes = isHoliday
+                    ? (state.sessionClasses || [])
+                    : (state.classes || []).filter(c => c.is_active !== false);
+
+                const records = await getAll('attendance_records', { attendance_date: date });
+
+                const byClass = new Map();
+                (records || []).forEach(r => {
+                    if (!byClass.has(r.class_id)) byClass.set(r.class_id, { present: 0, absent: 0, total: 0 });
+                    const b = byClass.get(r.class_id);
+                    b.total++;
+                    if (r.status === ATT_STATUS.PRESENT) b.present++;
+                    else if (r.status === ATT_STATUS.ABSENT) b.absent++;
+                });
+
+                let totalStudents = 0, totalPresent = 0, totalAbsent = 0, totalMarked = 0;
+
+                const rowsHtml = classes.map(c => {
+                    let rosterCount;
+                    if (isHoliday) {
+                        rosterCount = (state.sessionEnrollments || [])
+                            .filter(e => e.session_class_id == c.id && e.is_active !== false).length;
+                    } else {
+                        rosterCount = (state.students || [])
+                            .filter(s => s.class_id == c.id && s.status === 'Active').length;
+                    }
+                    const b = byClass.get(c.id) || { present: 0, absent: 0, total: 0 };
+                    const marked = b.total;
+                    const pct = rosterCount > 0 ? Math.round((marked / rosterCount) * 100) : 0;
+
+                    const statusBadge = marked === 0
+                        ? `<span class="badge badge-warning">Not taken</span>`
+                        : (marked >= rosterCount
+                            ? `<span class="badge badge-success">Complete</span>`
+                            : `<span class="badge badge-info">Partial (${marked}/${rosterCount})</span>`);
+
+                    totalStudents += rosterCount;
+                    totalPresent += b.present;
+                    totalAbsent += b.absent;
+                    totalMarked += marked;
+
+                    return `
+                        <tr>
+                            <td><strong>${esc(c.name)}</strong></td>
+                            <td style="text-align:center">${rosterCount}</td>
+                            <td style="text-align:center;color:var(--success);font-weight:700">${b.present}</td>
+                            <td style="text-align:center;color:var(--danger);font-weight:700">${b.absent}</td>
+                            <td style="text-align:center">${marked}</td>
+                            <td style="text-align:center">${pct}%</td>
+                            <td style="text-align:center">${statusBadge}</td>
+                        </tr>`;
+                }).join('');
+
+                const overallPct = totalMarked > 0 ? Math.round((totalPresent / totalMarked) * 100) : 0;
+
+                body.innerHTML = `
+                    <div class="att-summary">
+                        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${totalStudents}</div><div class="stat-label">Enrolled</div></div>
+                        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value" style="color:var(--success)">${totalPresent}</div><div class="stat-label">Present</div></div>
+                        <div class="stat-card"><div class="stat-icon">❌</div><div class="stat-value" style="color:var(--danger)">${totalAbsent}</div><div class="stat-label">Absent</div></div>
+                        <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-value">${overallPct}%</div><div class="stat-label">Attendance Rate</div></div>
+                    </div>
+                    <div class="dash-card">
+                        <div class="dash-card-header">
+                            <span class="dash-card-title">📋 By Class — ${fmtDate(date)}</span>
+                            <button class="btn btn-sm btn-outline" onclick="attExportDashboardCSV('${date}')">📥 Export</button>
+                        </div>
+                        <div class="dash-card-body" style="padding:0">
+                            <div class="table-wrapper">
+                                <table class="data-table">
+                                    <thead><tr>
+                                        <th>Class</th><th style="text-align:center">Roster</th>
+                                        <th style="text-align:center">Present</th><th style="text-align:center">Absent</th>
+                                        <th style="text-align:center">Marked</th><th style="text-align:center">%</th>
+                                        <th style="text-align:center">Status</th>
+                                    </tr></thead>
+                                    <tbody>${rowsHtml || `<tr><td colspan="7" style="text-align:center;padding:20px">No classes found</td></tr>`}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                body.innerHTML = `<div class="alert alert-danger">Failed to load dashboard: ${esc(err.message || err)}</div>`;
+            }
+        }
+
+        function attExportDashboardCSV(date) {
+            const rows = [...document.querySelectorAll('#attd-body table tbody tr')].map(tr =>
+                [...tr.querySelectorAll('td')].map(td => td.innerText.trim())
+            );
+            const header = ['Class', 'Roster', 'Present', 'Absent', 'Marked', '%', 'Status'];
+            const csv = [header, ...rows]
+                .map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(','))
+                .join('\n');
+            downloadBlob(csv, `Attendance_Dashboard_${date}.csv`, 'text/csv');
+            showToast('✅ Exported', 'success');
+        }
+
+        // ==================================================================================
+        // 3) ADMIN — ATTENDANCE REPORTS  (single-day SDMS-formatted table)
+        // ----------------------------------------------------------------------------------
+        // Semantics:
+        //   Expected      = every active student in the level
+        //   Reported      = students with a 'Present' attendance row that day
+        //   Not Reported  = Expected - Reported
+        //                   (i.e. Absent students AND students with no row at all)
+        //
+        // P1A and P1B are kept as SEPARATE rows. Everything else is one row per level.
+        // Teachers are NOT shown on the page — they are hardcoded into the Excel export.
+        // ==================================================================================
+
+        let _attReportDate = null;
+        let _attReportRows = [];
+        let _attReportRecords = [];
+
+        // ---- Fixed teacher constants — used ONLY by the Excel export. ----
+        // Adjust here if the school's teacher numbers ever change.
+        const ATT_REPORT_TEACHERS = {
+            N1: { expF: 1, expM: 0, repF: 1, repM: 0 },
+            N2: { expF: 1, expM: 0, repF: 1, repM: 0 },
+            N3: { expF: 1, expM: 0, repF: 1, repM: 0 },
+            P1A: { expF: 1, expM: 1, repF: 1, repM: 1 },
+            P1B: { expF: 1, expM: 1, repF: 1, repM: 1 },
+            P2: { expF: 0, expM: 1, repF: 0, repM: 1 },
+            P3: { expF: 1, expM: 1, repF: 1, repM: 1 },
+            P4: { expF: 0, expM: 1, repF: 0, repM: 1 },
+            P5: { expF: 0, expM: 1, repF: 0, repM: 1 },
+            P6: { expF: 0, expM: 1, repF: 0, repM: 1 }
+        };
+
+        // Returns a stable per-class key used as the row identifier in the report.
+        //   "NURSERY 1"   -> "N1"
+        //   "NURSERY 2"   -> "N2"
+        //   "PRIMARY 1A"  -> "P1A"     <-- keeps the A/B suffix
+        //   "PRIMARY 1B"  -> "P1B"
+        //   "PRIMARY 2"   -> "P2"
+        //   "PRIMARY 6"   -> "P6"
+        function attLevelKey(className) {
+            const s = String(className || '').trim().toUpperCase();
+            let m = s.match(/^NURSERY\s*(\d+)([A-Z]?)$/);
+            if (m) return 'N' + m[1] + (m[2] || '');
+            m = s.match(/^PRIMARY\s*(\d+)([A-Z]?)$/);
+            if (m) return 'P' + m[1] + (m[2] || '');
+            return s;
+        }
+
+        // Canonical display order. P1A and P1B sit side by side.
+        const ATT_LEVEL_ORDER = ['N1', 'N2', 'N3', 'P1A', 'P1B', 'P2', 'P3', 'P4', 'P5', 'P6'];
+
+        // Sort helper used to compare two level keys in canonical order.
+        function attLevelRank(key) {
+            const i = ATT_LEVEL_ORDER.indexOf(key);
+            return i === -1 ? 999 : i;
+        }
+
+        // Build a summary row for ONE class (not one level).
+        // Each call receives the actual class row from state.classes.
+        function attReportBuildClassRow(cls) {
+            const levelKey = attLevelKey(cls.name);
+
+            // Roster: every active student currently in this class.
+            const roster = (state.students || []).filter(s =>
+                s.class_id === cls.id && s.status === 'Active'
+            );
+
+            // Index today's attendance rows by student_id.
+            const recByStudent = new Map();
+            _attReportRecords.forEach(r => {
+                if (r.class_id === cls.id) recByStudent.set(String(r.student_id), r);
+            });
+
+            // Expected = every active student.
+            const expGirls = roster.filter(s => s.gender === 'Female').length;
+            const expBoys = roster.filter(s => s.gender === 'Male').length;
+
+            // Reported = Present ONLY. (Absent rows do NOT count as reported.)
+            const reported = roster.filter(s => {
+                const r = recByStudent.get(String(s.id));
+                return r && r.status === 'Present';
+            });
+            const repGirls = reported.filter(s => s.gender === 'Female').length;
+            const repBoys = reported.filter(s => s.gender === 'Male').length;
+
+            // Not Reported = Expected - Reported.
+            // This automatically includes Absent students (row exists, but status='Absent')
+            // AND students with no row at all.
+            const nrGirls = expGirls - repGirls;
+            const nrBoys = expBoys - repBoys;
+
+            return {
+                levelKey,
+                classId: cls.id,
+                className: cls.name,
+                expected: { girls: expGirls, boys: expBoys, total: expGirls + expBoys },
+                reported: { girls: repGirls, boys: repBoys, total: repGirls + repBoys },
+                notReported: { girls: nrGirls, boys: nrBoys, total: nrGirls + nrBoys }
+            };
+        }
+
+        async function renderAttendanceReports(el) {
+            await ensureStateLoaded();
+            const user = state.currentUser;
+            if (!user || user.role !== 'admin') {
+                el.innerHTML = `<div class="alert alert-danger" style="margin:20px">Access denied. Admin only.</div>`;
+                return;
+            }
+
+            const today = attTodayLocal();
+            const firstOfMonth = today.slice(0, 8) + '01';
+
+            el.innerHTML = `
+                <div class="dash-card">
+                    <div class="dash-card-header" style="flex-wrap:wrap;gap:12px">
+                        <span class="dash-card-title">📈 Attendance Report</span>
+                        <span class="badge badge-info">${getCurrentPeriod().label}</span>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto">
+                            <label style="font-size:.85rem;color:var(--text-muted)">Date</label>
+                            <input type="date" id="attr-date" value="${firstOfMonth}"
+                                   max="${today}"
+                                   style="padding:6px 12px;border-radius:var(--r-md);border:1px solid var(--border-medium);font-size:.9rem">
+                            <button class="btn btn-primary" onclick="attLoadReport()">🔍 Load</button>
+                            <button class="btn btn-success" onclick="attExportReportExcel()">📥 Export Excel (SDMS)</button>
+                            <button class="btn btn-outline" onclick="attPrintReport()">🖨️ Print</button>
+                        </div>
+                    </div>
+                    <div class="dash-card-body" id="attr-body" style="padding:16px">
+                        <div class="alert alert-info" style="text-align:center;padding:40px">
+                            Pick a date and click <strong>Load</strong>.
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('attr-date')?.addEventListener('change', attLoadReport);
+            await attLoadReport();
+        }
+
+        async function attLoadReport() {
+            const body = document.getElementById('attr-body');
+            if (!body) return;
+
+            const date = document.getElementById('attr-date')?.value;
+            if (!date) { showToast('Pick a date first', 'warning'); return; }
+
+            const check = attIsValidAttendanceDate(date);
+            if (!check.ok) {
+                body.innerHTML = `<div class="alert alert-warning" style="text-align:center;padding:40px">${esc(check.reason)}</div>`;
+                return;
+            }
+
+            _attReportDate = date;
+            body.innerHTML = `<div class="loading-container"><div class="spinner"></div><p>Loading ${fmtDate(date)}…</p></div>`;
+
+            try {
+                const records = await getAll('attendance_records', { attendance_date: date });
+                _attReportRecords = Array.isArray(records) ? records : [];
+
+                // One row per active class, sorted by canonical level order.
+                const classList = (state.classes || [])
+                    .filter(c => c.is_active !== false)
+                    .sort((a, b) => attLevelRank(attLevelKey(a.name)) - attLevelRank(attLevelKey(b.name)));
+
+                _attReportRows = classList.map(attReportBuildClassRow);
+                body.innerHTML = attRenderReportTable(_attReportRows, date);
+            } catch (err) {
+                console.error('[attendance-report] load failed', err);
+                body.innerHTML = `<div class="alert alert-danger">Failed to load report: ${esc(err.message || err)}</div>`;
+            }
+        }
+
+        function attRenderReportTable(rows, date) {
+            const sum = {
+                expG: 0, expB: 0, expT: 0,
+                repG: 0, repB: 0, repT: 0,
+                nrG: 0, nrB: 0, nrT: 0
+            };
+            rows.forEach(r => {
+                sum.expG += r.expected.girls; sum.expB += r.expected.boys; sum.expT += r.expected.total;
+                sum.repG += r.reported.girls; sum.repB += r.reported.boys; sum.repT += r.reported.total;
+                sum.nrG += r.notReported.girls; sum.nrB += r.notReported.boys; sum.nrT += r.notReported.total;
+            });
+            const pctOf = (n, d) => d > 0 ? Math.round(n / d * 100) + '%' : '—';
+
+            const dataRow = r => `
+                <tr>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;font-weight:700">${esc(r.levelKey)}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;color:var(--text-muted);font-size:.82rem">${esc(r.className)}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center">${r.expected.girls}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center">${r.expected.boys}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;font-weight:700">${r.expected.total}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:var(--success)">${r.reported.girls}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:var(--success)">${r.reported.boys}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;font-weight:700;color:var(--success)">${r.reported.total}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:${r.notReported.total > 0 ? 'var(--danger)' : 'var(--text-muted)'}">${r.notReported.girls}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:${r.notReported.total > 0 ? 'var(--danger)' : 'var(--text-muted)'}">${r.notReported.boys}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;font-weight:700;color:${r.notReported.total > 0 ? 'var(--danger)' : 'var(--text-muted)'}">${r.notReported.total}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;font-weight:700">
+                        <span class="badge ${r.expected.total > 0 && r.reported.total === r.expected.total ? 'badge-success' : 'badge-warning'}">
+                            ${pctOf(r.reported.total, r.expected.total)}
+                        </span>
+                    </td>
+                </tr>`;
+
+            const totalRow = `
+                <tr style="background:var(--bg-tertiary);font-weight:700">
+                    <td colspan="2" style="border:1px solid var(--border-medium);padding:8px 12px">TOTAL</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center">${sum.expG}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center">${sum.expB}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center">${sum.expT}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:var(--success)">${sum.repG}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:var(--success)">${sum.repB}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:var(--success)">${sum.repT}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:${sum.nrT > 0 ? 'var(--danger)' : 'var(--text-muted)'}">${sum.nrG}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:${sum.nrT > 0 ? 'var(--danger)' : 'var(--text-muted)'}">${sum.nrB}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:${sum.nrT > 0 ? 'var(--danger)' : 'var(--text-muted)'}">${sum.nrT}</td>
+                    <td style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center">${pctOf(sum.repT, sum.expT)}</td>
+                </tr>`;
+
+            return `
+                <div style="margin-bottom:12px;font-size:.9rem;color:var(--text-secondary)">
+                    <strong>Daily Attendance</strong> — ${esc(fmtDate(date))}
+                </div>
+                <div class="table-wrapper">
+                    <table style="width:100%;border-collapse:collapse;font-size:.85rem;min-width:900px">
+                        <thead>
+                            <tr style="background:var(--bg-tertiary);font-weight:700">
+                                <th rowspan="2" style="border:1px solid var(--border-medium);padding:8px 12px;text-align:left">Level</th>
+                                <th rowspan="2" style="border:1px solid var(--border-medium);padding:8px 12px;text-align:left">Class</th>
+                                <th colspan="3" style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center">Expected</th>
+                                <th colspan="3" style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:var(--success)">Reported (Present)</th>
+                                <th colspan="3" style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center;color:var(--danger)">Not Reported</th>
+                                <th rowspan="2" style="border:1px solid var(--border-medium);padding:8px 12px;text-align:center">%</th>
+                            </tr>
+                            <tr style="background:var(--bg-tertiary);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.4px">
+                                <th style="border:1px solid var(--border-medium);padding:6px 12px;text-align:center">Girls</th>
+                                <th style="border:1px solid var(--border-medium);padding:6px 12px;text-align:center">Boys</th>
+                                <th style="border:1px solid var(--border-medium);padding:6px 12px;text-align:center">Total</th>
+                                <th style="border:1px solid var(--border-medium);padding:6px 12px;text-align:center">Girls</th>
+                                <th style="border:1px solid var(--border-medium);padding:6px 12px;text-align:center">Boys</th>
+                                <th style="border:1px solid var(--border-medium);padding:6px 12px;text-align:center">Total</th>
+                                <th style="border:1px solid var(--border-medium);padding:6px 12px;text-align:center">Girls</th>
+                                <th style="border:1px solid var(--border-medium);padding:6px 12px;text-align:center">Boys</th>
+                                <th style="border:1px solid var(--border-medium);padding:6px 12px;text-align:center">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows.map(dataRow).join('')}
+                            ${totalRow}
+                        </tbody>
+                    </table>
+                </div>`;
+        }
+
+        function attPrintReport() {
+            const body = document.getElementById('attr-body');
+            if (!body || !_attReportDate) { showToast('Load a report first', 'warning'); return; }
+            const table = body.querySelector('table');
+            if (!table) { showToast('Nothing to print', 'warning'); return; }
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html><head>
+                    <title>Attendance Report - ${fmtDate(_attReportDate)}</title>
+                    <style>
+                        *{box-sizing:border-box}
+                        body{font-family:Arial,sans-serif;padding:20px}
+                        h2,h3{text-align:center;margin:4px 0}
+                        table{width:100%;border-collapse:collapse;font-size:11px;margin-top:16px}
+                        th,td{border:1px solid #555;padding:6px 8px;text-align:center}
+                        th{background:#e2e8f0}
+                        td:nth-child(-n+2),th:nth-child(-n+2){text-align:left}
+                        @media print{body{padding:0}@page{size:A4 landscape;margin:12mm}}
+                    </style>
+                </head>
+                <body>
+                    <h2>ECOLE LA FONTAINE</h2>
+                    <h3>Daily Attendance Report — ${fmtDate(_attReportDate)}</h3>
+                    ${table.outerHTML}
+                </body></html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 400);
+        }
+
+        // ---- Export to Excel in the SDMS two-sheet layout -----------------------------
+        // NURSERY sheet: N1, N2, N3
+        // PRIMARY sheet: P1A, P1B, P2, P3, P4, P5, P6
+        function attExportReportExcel() {
+            if (!_attReportDate || !_attReportRows || _attReportRows.length === 0) {
+                showToast('Load a report first', 'warning');
+                return;
+            }
+            const schoolName = state.schoolSettings.school_name || 'ECOLE LA FONTAINE';
+            const schoolSdms = state.schoolSettings.school_sdms_code || state.schoolSettings.sdms_code || '331239';
+            const acadYearName = state.currentAcadYear?.name || '2026-2027';
+            const termName = state.currentTerm?.name || 'Term I';
+            const headName = state.schoolSettings.report_footer_line2 || 'UWAYO GANZA Eugene';
+
+            const wb = XLSX.utils.book_new();
+
+            const buildSheet = (levels, sheetName) => {
+                const aoa = [];
+                const push = (...cells) => aoa.push(cells);
+                const blank = () => aoa.push([]);
+
+                // --- Header block ---
+                push('REPUBLIC OF RWANDA');
+                push('WESTERN PROVINCE');
+                push('RUBAVU DISTRICT');
+                push('RUGERERO SECTOR');
+                blank();
+                push(`${termName.toUpperCase()} ${acadYearName} DAILY STUDENTS ATTENDANCE REPORT`);
+                blank();
+                push(`SCHOOL NAME: ${schoolName}`);
+                blank();
+                push('', `${sheetName} STUDENTS DAILY ATTENDANCE REPORT ON ${fmtDate(_attReportDate)}`);
+                blank();
+
+                // --- Two-row column headers ---
+                push(
+                    'SCHOOL SDMS CODE', 'SCHOOL NAME', 'LEVEL',
+                    'EXPECTED NUMBER OF STUDENTS', '', '',
+                    'REPORTED STUDENTS', '', '',
+                    '%',
+                    'NOT YET REPORTED STUDENTS',
+                    'EXPECTED NUMBER OF TEACHERS', '', '',
+                    'REPORTED TEACHERS', '', '',
+                    '%',
+                    'NOT YET REPORTED TEACHERS'
+                );
+                push(
+                    '', '', '',
+                    'Girls', 'Boys', 'Total',
+                    'GIRLS', 'BOYS', 'Total',
+                    '',
+                    '',
+                    'Female', 'Male', 'Total',
+                    'Female', 'Male', 'Total',
+                    '',
+                    ''
+                );
+
+                // --- Data rows, one per level key in `levels` ---
+                levels.forEach((levelKey, idx) => {
+                    const row = _attReportRows.find(r => r.levelKey === levelKey);
+                    if (!row) return;
+
+                    const t = ATT_REPORT_TEACHERS[levelKey] || { expF: 0, expM: 0, repF: 0, repM: 0 };
+                    const expTT = t.expF + t.expM;
+                    const repTT = t.repF + t.repM;
+                    const pctNum = row.expected.total > 0 ? row.reported.total / row.expected.total : 0;
+                    const teacherPct = expTT > 0 ? repTT / expTT : 0;
+
+                    aoa.push([
+                        idx === 0 ? schoolSdms : '',
+                        idx === 0 ? schoolName : '',
+                        levelKey,
+                        row.expected.girls,
+                        row.expected.boys,
+                        row.expected.total,
+                        row.reported.girls,
+                        row.reported.boys,
+                        row.reported.total,
+                        pctNum,
+                        row.notReported.total,
+                        t.expF, t.expM, expTT,
+                        t.repF, t.repM, repTT,
+                        teacherPct,
+                        expTT - repTT
+                    ]);
+                });
+
+                // --- TOTAL row ---
+                const find = k => _attReportRows.find(r => r.levelKey === k);
+                const sumExpG = levels.reduce((a, k) => a + (find(k)?.expected.girls || 0), 0);
+                const sumExpB = levels.reduce((a, k) => a + (find(k)?.expected.boys || 0), 0);
+                const sumExpT = sumExpG + sumExpB;
+                const sumRepG = levels.reduce((a, k) => a + (find(k)?.reported.girls || 0), 0);
+                const sumRepB = levels.reduce((a, k) => a + (find(k)?.reported.boys || 0), 0);
+                const sumRepT = sumRepG + sumRepB;
+                const sumNrT = sumExpT - sumRepT;
+
+                const sumExpTF = levels.reduce((a, k) => a + (ATT_REPORT_TEACHERS[k]?.expF || 0), 0);
+                const sumExpTM = levels.reduce((a, k) => a + (ATT_REPORT_TEACHERS[k]?.expM || 0), 0);
+                const sumExpTT = sumExpTF + sumExpTM;
+                const sumRepTF = levels.reduce((a, k) => a + (ATT_REPORT_TEACHERS[k]?.repF || 0), 0);
+                const sumRepTM = levels.reduce((a, k) => a + (ATT_REPORT_TEACHERS[k]?.repM || 0), 0);
+                const sumRepTT = sumRepTF + sumRepTM;
+                const sumNrTT = sumExpTT - sumRepTT;
+
+                aoa.push([
+                    'TOTAL', '', '',
+                    sumExpG, sumExpB, sumExpT,
+                    sumRepG, sumRepB, sumRepT,
+                    sumExpT > 0 ? sumRepT / sumExpT : 0,
+                    sumNrT,
+                    sumExpTF, sumExpTM, sumExpTT,
+                    sumRepTF, sumRepTM, sumRepTT,
+                    sumExpTT > 0 ? sumRepTT / sumExpTT : 0,
+                    sumNrTT
+                ]);
+
+                blank();
+                push(`Done at Rugerero, on  ${fmtDate(new Date())}`);
+                blank();
+                push('', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Approved by');
+                blank();
+                push('', '', '', '', '', '', '', '', '', '', '', '', '', '', '', headName);
+                push('', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'The School Headteacher');
+
+                // --- Sheet layout ---
+                const ws = XLSX.utils.aoa_to_sheet(aoa);
+                ws['!cols'] = [
+                    { wch: 12 }, { wch: 22 }, { wch: 8 },
+                    { wch: 7 }, { wch: 7 }, { wch: 7 },
+                    { wch: 7 }, { wch: 7 }, { wch: 7 },
+                    { wch: 8 }, { wch: 10 },
+                    { wch: 8 }, { wch: 8 }, { wch: 8 },
+                    { wch: 8 }, { wch: 8 }, { wch: 8 },
+                    { wch: 8 }, { wch: 10 }
+                ];
+
+                // Percent format on J and R for data + total rows.
+                const headerRowCount = 11;
+                const dataStart = headerRowCount;
+                const dataEnd = dataStart + levels.length;
+                for (let r = dataStart; r <= dataEnd; r++) {
+                    for (const col of ['J', 'R']) {
+                        const addr = `${col}${r + 1}`;
+                        if (ws[addr] && typeof ws[addr].v === 'number') ws[addr].z = '0"%"';
+                    }
+                }
+
+                // Merged header cells.
+                ws['!merges'] = [
+                    { s: { r: 5, c: 0 }, e: { r: 5, c: 18 } },
+                    { s: { r: 7, c: 0 }, e: { r: 7, c: 18 } },
+                    { s: { r: 9, c: 1 }, e: { r: 9, c: 18 } },
+
+                    { s: { r: 11, c: 3 }, e: { r: 11, c: 5 } },
+                    { s: { r: 11, c: 6 }, e: { r: 11, c: 8 } },
+                    { s: { r: 11, c: 11 }, e: { r: 11, c: 13 } },
+                    { s: { r: 11, c: 14 }, e: { r: 11, c: 16 } },
+
+                    { s: { r: 11, c: 0 }, e: { r: 12, c: 0 } },
+                    { s: { r: 11, c: 1 }, e: { r: 12, c: 1 } },
+                    { s: { r: 11, c: 2 }, e: { r: 12, c: 2 } },
+                    { s: { r: 11, c: 9 }, e: { r: 12, c: 9 } },
+                    { s: { r: 11, c: 10 }, e: { r: 12, c: 10 } },
+                    { s: { r: 11, c: 17 }, e: { r: 12, c: 17 } },
+                    { s: { r: 11, c: 18 }, e: { r: 12, c: 18 } }
+                ];
+
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            };
+
+            buildSheet(['N1', 'N2', 'N3'], 'NURSERY');
+            buildSheet(['P1A', 'P1B', 'P2', 'P3', 'P4', 'P5', 'P6'], 'PRIMARY');
+
+            const filename = `${fmtDate(_attReportDate).replace(/\s/g, '_')} ECOLE LA FONTAINE Students Attendance Report.xlsx`;
+            XLSX.writeFile(wb, filename);
+            showToast('✅ Exported SDMS attendance report', 'success');
+        }
+
+        // ==================================================================================
+        // 4) ADMIN — AUDIT LOG
+        // ==================================================================================
+        async function renderAttendanceAudit(el) {
+            await ensureStateLoaded();
+            const user = state.currentUser;
+            if (!user || user.role !== 'admin') {
+                el.innerHTML = `<div class="alert alert-danger" style="margin:20px">Access denied. Admin only.</div>`;
+                return;
+            }
+
+            el.innerHTML = `
+                <div class="dash-card">
+                    <div class="dash-card-header">
+                        <span class="dash-card-title">🔍 Attendance Audit Log</span>
+                        <button class="btn btn-sm btn-outline" onclick="attLoadAudit()">🔄 Refresh</button>
+                    </div>
+                    <div class="dash-card-body" id="attaudit-body">
+                        <div class="loading-container"><div class="spinner"></div><p>Loading…</p></div>
+                    </div>
+                </div>
+            `;
+            await attLoadAudit();
+        }
+
+        async function attLoadAudit() {
+            const body = document.getElementById('attaudit-body');
+            if (!body) return;
+            body.innerHTML = `<div class="loading-container"><div class="spinner"></div><p>Loading…</p></div>`;
+
+            try {
+                const rows = await getAll('attendance_audit_log', { order: 'at.desc', limit: 200 });
+                if (!rows || rows.length === 0) {
+                    body.innerHTML = `<div class="alert alert-info">No audit entries yet.</div>`;
+                    return;
+                }
+
+                body.innerHTML = `
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead><tr>
+                                <th>When</th><th>Actor</th><th>Action</th>
+                                <th>Student</th><th>Class</th><th>Date</th>
+                                <th>Old</th><th>New</th>
+                            </tr></thead>
+                            <tbody>
+                                ${rows.map(r => {
+                    const actor = (state.teachers || []).find(t => t.id === r.actor_user_id);
+                    const student = state.students.find(s => s.id === r.student_id);
+                    const cls = getClassById(r.class_id);
+                    return `
+                                        <tr>
+                                            <td style="white-space:nowrap;font-size:.8rem">${fmtDateTime(r.at)}</td>
+                                            <td>${esc(actor?.name || r.actor_user_id || '—')}</td>
+                                            <td><span class="badge ${r.action === 'INSERT' ? 'badge-success' : r.action === 'DELETE' ? 'badge-danger' : 'badge-warning'}">${esc(r.action)}</span></td>
+                                            <td>${student ? esc(student.first_name + ' ' + student.last_name) : (r.student_id || '—')}</td>
+                                            <td>${esc(cls?.name || '—')}</td>
+                                            <td>${fmtDate(r.attendance_date)}</td>
+                                            <td>${r.old_status ? `<span class="att-pill ${r.old_status.toLowerCase()}">${esc(r.old_status)}</span>` : '—'}</td>
+                                            <td>${r.new_status ? `<span class="att-pill ${r.new_status.toLowerCase()}">${esc(r.new_status)}</span>` : '—'}</td>
+                                        </tr>`;
+                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (err) {
+                body.innerHTML = `<div class="alert alert-danger">Failed: ${esc(err.message || err)}</div>`;
+            }
         }
 
         // 44. renderSchoolSettings
@@ -17622,7 +19489,7 @@
             style="padding:4px 8px;border-radius:6px;border:1px solid var(--border-medium)">
         <option value="">— None —</option>
         ${state.teachers.filter(t => t.role === 'teacher' && t.is_active !== false)
-                    .map(t => `<option value="${t.id}" ${c.class_teacher_id == t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
+                    .map(t => `<option value="${t.id}" ${c.class_teacher_id == t.id ? 'selected' : ''}>${esc(t.name.slice(0, 22))}${t.name.length > 22 ? '…' : ''}</option>`).join('')}
     </select>
 </td>
                                             <td><span class="badge ${c.is_active ? 'badge-success' : 'badge-danger'}">${c.is_active ? 'Active' : 'Inactive'}</span></td>
@@ -18752,7 +20619,7 @@
                 `<option value="${s.id}">${esc(s.name)}</option>`).join('');
             const dayOpts = TIMETABLE_DAYS.map(d => `<option value="${d}" ${d === prefillDay ? 'selected' : ''}>${d}</option>`)
                 .join('');
-            const tsOpts = TIMETABLE_TIME_SLOTS.map(t =>
+            const tsOpts = getTimetableTimeSlots().map(t =>
                 `<option value="${t}" ${t === prefillTime ? 'selected' : ''}>${t}</option>`).join('');
 
             document.getElementById('tt-modal-wrap').innerHTML = `
@@ -18793,7 +20660,7 @@
                 `<option value="${s.id}" ${s.id == slot.subject_id ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
             const dayOpts = TIMETABLE_DAYS.map(d => `<option value="${d}" ${d === slot.day ? 'selected' : ''}>${d}</option>`)
                 .join('');
-            const tsOpts = TIMETABLE_TIME_SLOTS.map(t =>
+            const tsOpts = getTimetableTimeSlots().map(t =>
                 `<option value="${t}" ${t === slot.time_slot ? 'selected' : ''}>${t}</option>`).join('');
 
             document.getElementById('tt-modal-wrap').innerHTML = `
@@ -18983,7 +20850,7 @@
             if (classIdFilter) filteredSlots = slots.filter(s => String(s.class_id) === String(classIdFilter));
 
             const days = TIMETABLE_DAYS;
-            const timeSlots = TIMETABLE_TIME_SLOTS;
+            const timeSlots = getTimetableTimeSlots();
 
             const idx = {};
             for (const s of filteredSlots) {
@@ -19016,7 +20883,10 @@
                 const breakLabel = isBreak ? (ts === '10:20-10:40' ? '🍎 MORNING BREAK' : ts === '12:00-13:00' ?
                     '🍽️ LUNCH BREAK' : '☕ AFTERNOON BREAK') : '';
 
-                html += `<tr style="${isBreak ? 'background:var(--bg-tertiary)' : ''}">
+                const rowTint = isBreak
+                    ? 'background:var(--bg-tertiary)'
+                    : (ts === '16:20-16:40' ? 'background:var(--role-light)' : '');
+                html += `<tr style="${rowTint}">
                     <td style="font-weight:600;white-space:nowrap;padding:8px 12px">
                         ${ts}${breakIcon ? ` ${breakIcon}` : ''}<br>
                         ${breakLabel ? `<span style="font-size:10px;color:var(--text-muted)">${breakLabel}</span>` : ''}
@@ -19036,9 +20906,9 @@
                             const subj = state.subjects.find(s => s.id == sl.subject_id);
                             const tch = state.teachers.find(t => t.id == sl.teacher_id);
                             html += `<div style="background:var(--role-light,var(--info-bg));border-radius:var(--r-sm);padding:4px 8px;margin:2px 0;border-left:3px solid var(--role-primary,var(--info))">
-                                <div style="font-weight:600;font-size:12px">${esc(subj?.name || '?')}</div>
-                                <div style="color:var(--text-muted);font-size:10px">${esc(cls?.name || '?')}</div>
-                                <div style="color:var(--text-muted);font-size:10px">👤 ${esc(tch?.name || '—')}</div>
+                                <div style="font-weight:600;font-size:12px">${truncateWithTitle(subj?.name || '?', 12)}</div>
+                                <div style="color:var(--text-muted);font-size:10px">${truncateWithTitle(cls?.name || '?', 12)}</div>
+                                <div style="color:var(--text-muted);font-size:10px">👤 ${truncateWithTitle(tch?.name || '—', 14)}</div>
                                 ${sl.room ? `<div style="color:var(--text-muted);font-size:10px">📍 Room: ${esc(sl.room)}</div>` : ''}
                                 ${canEdit ? `<div style="margin-top:4px;display:flex;gap:4px">
                                     <button class="btn btn-sm btn-outline" style="font-size:9px;padding:1px 5px" onclick="openEditTimetableSlot(${sl.id})">✏️</button>
@@ -19058,7 +20928,7 @@
 
         async function renderTeacherTimetableView(container, slots, teacherIdFilter) {
             const days = TIMETABLE_DAYS;
-            const timeSlots = TIMETABLE_TIME_SLOTS;
+            const timeSlots = getTimetableTimeSlots();
 
             let teachers = state.teachers.filter(t => t.role === 'teacher' && t.is_active !== false);
             if (teacherIdFilter) {
@@ -19140,8 +21010,8 @@
 
                                 html += `
                                     <div style="background:${bgColor};border-radius:var(--r-sm);padding:6px 10px;margin:4px 0;border-left:3px solid hsl(${((subj?.id || 0) * 47) % 360}, 60%, 55%)">
-                                        <div style="font-weight:700;font-size:12px">${esc(subj?.name || '?')}</div>
-                                        <div style="font-size:11px;color:var(--text-secondary)">📚 ${esc(cls?.name || '?')}</div>
+                                        <div style="font-weight:700;font-size:12px">${truncateWithTitle(subj?.name || '?', 12)}</div>
+<div style="font-size:11px;color:var(--text-secondary)">📚 ${truncateWithTitle(cls?.name || '?', 12)}</div>
                                         ${sl.room ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">📍 Room: ${esc(sl.room)}</div>` : ''}
                                         ${sl.notes ? `<div style="font-size:10px;color:var(--text-muted);font-style:italic">📝 ${esc(sl.notes)}</div>` : ''}
                                         ${isAdmin ? `
@@ -19805,7 +21675,7 @@
 
             const teacherIdFilter = document.getElementById('stt-teacher-filter')?.value;
             const days = TIMETABLE_DAYS;
-            const timeSlots = TIMETABLE_TIME_SLOTS;
+            const timeSlots = getTimetableTimeSlots();
 
             wrap.innerHTML = `<div class="loading-container"><div class="spinner"></div></div>`;
 
@@ -19849,7 +21719,10 @@
                         const breakIcon = getBreakIcon(ts);
                         const isBreak = isBreakSlot(ts);
 
-                        html += `<tr style="${isBreak ? 'background:var(--bg-tertiary)' : ''}">
+                        const rowTint = isBreak
+                            ? 'background:var(--bg-tertiary)'
+                            : (ts === '16:20-16:40' ? 'background:var(--role-light)' : '');
+                        html += `<tr style="${rowTint}">
                             <td style="font-size:11px;font-weight:600;white-space:nowrap;padding:4px 8px">
                                 ${ts}${breakIcon ? ` ${breakIcon}` : ''}
                                 ${isBreak ? '<br><span style="font-size:9px;">BREAK</span>' : ''}
@@ -19868,8 +21741,8 @@
                                     const cls = state.classes.find(c => c.id == sl.class_id);
                                     const subj = state.subjects.find(s => s.id == sl.subject_id);
                                     html += `<div style="background:var(--role-light,var(--info-bg));border-radius:var(--r-sm);padding:3px 6px;margin:2px 0;border-left:3px solid var(--role-primary,var(--info))">
-                                        <div style="font-weight:600;font-size:10px">${esc(subj?.name || '?')}</div>
-                                        <div style="color:var(--text-muted);font-size:9px">${esc(cls?.name || '?')}</div>
+                                        <div style="font-weight:600;font-size:10px">${truncateWithTitle(subj?.name || '?', 11)}</div>
+<div style="color:var(--text-muted);font-size:9px">${truncateWithTitle(cls?.name || '?', 11)}</div>
                                         ${sl.room ? `<div style="color:var(--text-muted);font-size:8px">📍 ${esc(sl.room)}</div>` : ''}
                                     </div>`;
                                 }
